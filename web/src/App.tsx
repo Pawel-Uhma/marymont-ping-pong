@@ -1,7 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
-import { userService } from './api'
-import type { User, LoginCredentials } from './api/types'
+import { userService, dataService } from './api'
+import type { LoginCredentials, Category, Player, GroupMatch, EliminationMatch, PlayerStanding, GroupStanding } from './api/types'
+import { AddPlayerModal } from './components/AddPlayerModal'
+import { AccountManagement } from './components/AccountManagement'
+import { GroupGenerator } from './components/GroupGenerator'
+import { MatchCreator } from './components/MatchCreator'
+
+interface User {
+  username: string;
+  role: 'admin' | 'player';
+  playerId: string | null;
+}
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -9,6 +19,21 @@ function App() {
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Dashboard data
+  const [selectedCategory, setSelectedCategory] = useState<Category>('man')
+  const [players, setPlayers] = useState<Player[]>([])
+  const [nextMatch, setNextMatch] = useState<GroupMatch | EliminationMatch | null>(null)
+  const [upcomingMatches, setUpcomingMatches] = useState<(GroupMatch | EliminationMatch)[]>([])
+  const [myMatches, setMyMatches] = useState<(GroupMatch | EliminationMatch)[]>([])
+  const [standings, setStandings] = useState<GroupStanding[]>([])
+  const [bracket, setBracket] = useState<any>(null)
+  
+  // Modal states
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false)
+  const [showAccountManagement, setShowAccountManagement] = useState(false)
+  const [showGroupGenerator, setShowGroupGenerator] = useState(false)
+  const [showMatchCreator, setShowMatchCreator] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,6 +71,78 @@ function App() {
     setError('') // Clear error when user types
   }
 
+  // Load dashboard data
+  const loadDashboardData = async () => {
+    if (!user) return;
+
+    try {
+      // Load players from both categories for upcoming matches
+      const [manPlayers, womanPlayers] = await Promise.all([
+        dataService.getPlayers('man'),
+        dataService.getPlayers('woman')
+      ])
+      const allPlayers = [...manPlayers, ...womanPlayers]
+      console.log('Loaded players data:', allPlayers)
+      setPlayers(allPlayers)
+
+      // Load next match for player
+      if (user.playerId) {
+        const nextMatchData = await dataService.getNextMatchForPlayer(selectedCategory, user.playerId)
+        setNextMatch(nextMatchData)
+        
+        // Load player's matches
+        const myMatchesData = await dataService.getMatchesForPlayer(selectedCategory, user.playerId)
+        setMyMatches(myMatchesData)
+      }
+
+      // Load upcoming matches from both categories
+      const upcomingMatchesData = await dataService.getUpcomingMatches()
+      setUpcomingMatches(upcomingMatchesData)
+
+      // Load standings
+      const standingsData = await dataService.getStandings(selectedCategory)
+      setStandings(standingsData)
+
+      // Load bracket
+      const bracketData = await dataService.getBracket(selectedCategory)
+      setBracket(bracketData)
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+    }
+  }
+
+  // Load data when user logs in or category changes
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      loadDashboardData()
+    }
+  }, [isLoggedIn, user, selectedCategory])
+
+  // Helper functions
+  const getPlayerName = (playerId: string): string => {
+    console.log('getPlayerName called with playerId:', playerId, 'players array:', players)
+    const player = players.find(p => p.id === playerId)
+    console.log('Found player:', player)
+    return player ? `${player.name} ${player.surname}` : 'Unknown Player'
+  }
+
+  const getMatchStatus = (match: GroupMatch | EliminationMatch): string => {
+    if (match.status === 'final') {
+      return match.winner ? `Won by ${getPlayerName(match.winner)}` : 'Completed'
+    }
+    if (match.status === 'in_progress') {
+      return 'In Progress'
+    }
+    return 'Scheduled'
+  }
+
+  const getSetScores = (match: GroupMatch | EliminationMatch): string[] => {
+    return match.sets.map((set, index) => {
+      if (set.p1 === 0 && set.p2 === 0) return `Set ${index + 1}: -`
+      return `Set ${index + 1}: ${set.p1}-${set.p2}`
+    })
+  }
+
   if (isLoggedIn) {
   return (
       <div className="app">
@@ -58,8 +155,8 @@ function App() {
             <div className="user-section">
               <div className="user-info">
                 <span className="username">{user?.username}</span>
-                <span className={`role-badge ${user?.username === 'admin' ? 'admin' : 'player'}`}>
-                  {user?.username === 'admin' ? 'Admin' : 'Player'}
+                <span className={`role-badge ${user?.role === 'admin' ? 'admin' : 'player'}`}>
+                  {user?.role === 'admin' ? 'Admin' : 'Player'}
                 </span>
               </div>
               <button onClick={handleLogout} className="logout-btn">
@@ -75,28 +172,38 @@ function App() {
             <div className="next-match-card">
               <div className="card-header">
                 <h3>Your Next Match</h3>
-                <span className="match-time">Today, 3:00 PM</span>
+                {nextMatch?.scheduledAt && (
+                  <span className="match-time">
+                    {new Date(nextMatch.scheduledAt).toLocaleDateString()}, {new Date(nextMatch.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </span>
+                )}
               </div>
               <div className="match-details">
-                <div className="opponents">
-                  <div className="player">
-                    <span className="player-name">John Doe</span>
-                    <span className="player-rank">#3</span>
+                {nextMatch ? (
+                  <>
+                    <div className="opponents">
+                      <div className="player">
+                        <span className="player-name">{getPlayerName(nextMatch.p1)}</span>
+                      </div>
+                      <div className="vs">VS</div>
+                      <div className="player">
+                        <span className="player-name">{getPlayerName(nextMatch.p2)}</span>
+                      </div>
+                    </div>
+                    <div className="current-scores">
+                      <div className="set-scores">
+                        {getSetScores(nextMatch).map((score, index) => (
+                          <span key={index}>{score}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <button className="edit-score-btn">Edit Score</button>
+                  </>
+                ) : (
+                  <div className="no-match">
+                    <p>No upcoming matches</p>
                   </div>
-                  <div className="vs">VS</div>
-                  <div className="player">
-                    <span className="player-name">Jane Smith</span>
-                    <span className="player-rank">#5</span>
-                  </div>
-                </div>
-                <div className="current-scores">
-                  <div className="set-scores">
-                    <span>Set 1: 11-9</span>
-                    <span>Set 2: 8-11</span>
-                    <span>Set 3: -</span>
-                  </div>
-                </div>
-                <button className="edit-score-btn">Edit Score</button>
+                )}
               </div>
             </div>
             
@@ -105,73 +212,87 @@ function App() {
               <div className="action-buttons">
                 <button className="action-btn blue">Report Score</button>
                 <button className="action-btn yellow">See All Matches</button>
-                {user?.username === 'admin' && (
-                  <>
-                    <button className="action-btn red">Add Player</button>
-                    <button className="action-btn black">Generate Groups</button>
-                    <button className="action-btn blue">Seed Bracket</button>
-                    <button className="action-btn yellow">Recompute Standings</button>
-                  </>
-                )}
               </div>
             </div>
+            
+            {user?.role === 'admin' && (
+              <div className="admin-actions">
+                <h4>Admin Actions</h4>
+                <div className="action-buttons">
+                  <button 
+                    className="action-btn black"
+                    onClick={() => setShowGroupGenerator(true)}
+                  >
+                    Generate Groups
+                  </button>
+                  <button 
+                    className="action-btn blue"
+                    onClick={() => setShowMatchCreator(true)}
+                  >
+                    Add Matches
+                  </button>
+                  <button 
+                    className="action-btn red"
+                    onClick={() => setShowAccountManagement(true)}
+                  >
+                    Manage Accounts
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Middle Section */}
           <div className="middle-section">
-            <div className="todays-matches">
+            <div className="upcoming-matches">
               <div className="section-header">
-                <h3>Today's Matches</h3>
-                <div className="filters">
-                  <select className="filter-select">
-                    <option>All Categories</option>
-                    <option>Men</option>
-                    <option>Women</option>
-                  </select>
-                  <select className="filter-select">
-                    <option>All Phases</option>
-                    <option>Group Stage</option>
-                    <option>Elimination</option>
-                  </select>
-                </div>
+                <h3>Upcoming Matches</h3>
               </div>
               <div className="matches-list">
-                <div className="match-item">
-                  <span className="time">2:00 PM</span>
-                  <span className="players">Mike vs Sarah</span>
-                  <span className="status">In Progress</span>
-                </div>
-                <div className="match-item">
-                  <span className="time">2:30 PM</span>
-                  <span className="players">Tom vs Lisa</span>
-                  <span className="status">Scheduled</span>
-                </div>
-                <div className="match-item">
-                  <span className="time">3:00 PM</span>
-                  <span className="players">John vs Jane</span>
-                  <span className="status">Scheduled</span>
-                </div>
+                {upcomingMatches.length > 0 ? (
+                  upcomingMatches.map((match) => (
+                    <div key={match.id} className="match-item">
+                      <span className="time">
+                        {match.scheduledAt ? new Date(match.scheduledAt).toLocaleDateString() + ' ' + new Date(match.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'TBD'}
+                      </span>
+                      <span className="players">
+                        {getPlayerName(match.p1)} vs {getPlayerName(match.p2)}
+                      </span>
+                      <span className={`status ${match.status}`}>
+                        {getMatchStatus(match)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="no-matches">
+                    <p>No upcoming matches scheduled</p>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="my-matches">
               <h3>My Matches</h3>
               <div className="matches-list">
-                <div className="match-item">
-                  <span className="time">3:00 PM</span>
-                  <span className="players">You vs Jane</span>
-                  <span className="status upcoming">Upcoming</span>
-                </div>
-                <div className="match-item">
-                  <span className="time">Yesterday</span>
-                  <span className="players">You vs Mike</span>
-                  <span className="status won">Won 3-1</span>
-                </div>
-                <div className="match-item">
-                  <span className="time">2 days ago</span>
-                  <span className="players">You vs Tom</span>
-                  <span className="status lost">Lost 2-3</span>
-                </div>
+                {myMatches.length > 0 ? (
+                  myMatches.map((match) => (
+                    <div key={match.id} className="match-item">
+                      <span className="time">
+                        {match.scheduledAt ? new Date(match.scheduledAt).toLocaleDateString() : 'TBD'}
+                      </span>
+                      <span className="players">
+                        {getPlayerName(match.p1)} vs {getPlayerName(match.p2)}
+                      </span>
+                      <span className={`status ${match.status}`}>
+                        {getMatchStatus(match)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="no-matches">
+                    <p>No matches found</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -182,8 +303,18 @@ function App() {
               <div className="section-header">
                 <h3>Group Standings</h3>
                 <div className="tabs">
-                  <button className="tab active">Men</button>
-                  <button className="tab">Women</button>
+                  <button 
+                    className={`tab ${selectedCategory === 'man' ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory('man')}
+                  >
+                    Men
+                  </button>
+                  <button 
+                    className={`tab ${selectedCategory === 'woman' ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory('woman')}
+                  >
+                    Women
+                  </button>
                 </div>
                 <div className="group-tabs">
                   <button className="group-tab active">Group A</button>
@@ -192,78 +323,141 @@ function App() {
                 </div>
               </div>
               <div className="standings-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Rank</th>
-                      <th>Player</th>
-                      <th>W-L</th>
-                      <th>Sets +/-</th>
-                      <th>Points +/-</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>1</td>
-                      <td>John Doe</td>
-                      <td>3-1</td>
-                      <td>+2</td>
-                      <td>+15</td>
-                    </tr>
-                    <tr>
-                      <td>2</td>
-                      <td>Mike Johnson</td>
-                      <td>2-2</td>
-                      <td>0</td>
-                      <td>+5</td>
-                    </tr>
-                    <tr>
-                      <td>3</td>
-                      <td>Tom Wilson</td>
-                      <td>2-2</td>
-                      <td>-1</td>
-                      <td>-3</td>
-                    </tr>
-                    <tr>
-                      <td>4</td>
-                      <td>Bob Smith</td>
-                      <td>1-3</td>
-                      <td>-1</td>
-                      <td>-17</td>
-                    </tr>
-                  </tbody>
-                </table>
+                {standings.length > 0 ? (
+                  standings.map((group) => (
+                    <div key={group.groupId} className="group-standings-table">
+                      <h4>Group {group.groupId}</h4>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>W-L</th>
+                            <th>Sets +/-</th>
+                            <th>Points +/-</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.table.map((player: PlayerStanding) => (
+                            <tr key={player.playerId}>
+                              <td>{player.rank}</td>
+                              <td>{getPlayerName(player.playerId)}</td>
+                              <td>{player.wins}-{player.losses}</td>
+                              <td>{player.setsFor - player.setsAgainst > 0 ? '+' : ''}{player.setsFor - player.setsAgainst}</td>
+                              <td>{player.pointsFor - player.pointsAgainst > 0 ? '+' : ''}{player.pointsFor - player.pointsAgainst}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))
+                ) : (
+                  <div className="no-standings">
+                    <p>No standings available</p>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="bracket-preview">
               <h3>Bracket Preview</h3>
               <div className="bracket">
-                <div className="bracket-round">
-                  <div className="bracket-match">
-                    <div className="player">John</div>
-                    <div className="player">Mike</div>
+                {bracket ? (
+                  bracket.rounds.map((round: any, roundIndex: number) => (
+                    <div key={roundIndex} className="bracket-round">
+                      <h5>{round.name}</h5>
+                      {round.matchIds.map((matchId: string) => {
+                        const match = bracket.matches?.find((m: any) => m.id === matchId)
+                        return match ? (
+                          <div key={matchId} className="bracket-match">
+                            <div className="player">{getPlayerName(match.p1)}</div>
+                            <div className="player">{getPlayerName(match.p2)}</div>
+                          </div>
+                        ) : null
+                      })}
+                    </div>
+                  ))
+                ) : (
+                  <div className="no-bracket">
+                    <p>No bracket available</p>
                   </div>
-                  <div className="bracket-match">
-                    <div className="player">Tom</div>
-                    <div className="player">Bob</div>
-                  </div>
-                </div>
-                <div className="bracket-round">
-                  <div className="bracket-match">
-                    <div className="player">John</div>
-                    <div className="player">Tom</div>
-                  </div>
-                </div>
-                <div className="bracket-round">
-                  <div className="bracket-match">
-                    <div className="player winner">John</div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
         </main>
+        
+        {/* Add Player Modal */}
+        <AddPlayerModal
+          isOpen={showAddPlayerModal}
+          onClose={() => setShowAddPlayerModal(false)}
+          onPlayerAdded={loadDashboardData}
+          category={selectedCategory}
+        />
+
+        {/* Account Management */}
+        {showAccountManagement && (
+          <div className="modal-overlay" onClick={() => setShowAccountManagement(false)}>
+            <div className="modal-content account-management-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Account Management</h2>
+                <button 
+                  className="modal-close" 
+                  onClick={() => setShowAccountManagement(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <AccountManagement />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Group Generator */}
+        {showGroupGenerator && (
+          <div className="modal-overlay" onClick={() => setShowGroupGenerator(false)}>
+            <div className="modal-content group-generator-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Generate Groups</h2>
+                <button 
+                  className="modal-close" 
+                  onClick={() => setShowGroupGenerator(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <GroupGenerator 
+                  onGroupsGenerated={loadDashboardData}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Match Creator */}
+        {showMatchCreator && (
+          <div className="modal-overlay" onClick={() => setShowMatchCreator(false)}>
+            <div className="modal-content match-creator-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Add Matches</h2>
+                <button 
+                  className="modal-close" 
+                  onClick={() => setShowMatchCreator(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <MatchCreator 
+                  onMatchesCreated={loadDashboardData}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

@@ -1,10 +1,30 @@
 // API exports
-export { s3Service } from './s3Service';
+export { lambdaService } from './lambdaService';
 export { userService } from './userService';
+export { dataService } from './dataService';
 export type { 
-  User, 
-  UsersData, 
+  Account,
+  AccountsData,
+  Player,
+  PlayersData,
+  Group,
+  GroupsData,
+  GroupMatch,
+  EliminationMatch,
+  GroupMatchesData,
+  EliminationMatchesData,
+  GroupStanding,
+  StandingsData,
+  BracketData,
   S3Config, 
   LoginCredentials, 
-  LoginResponse
+  LoginResponse,
+  Category,
+  LambdaAuthResponse,
+  LambdaPlayersResponse,
+  LambdaGroupsResponse,
+  LambdaMatchesResponse,
+  LambdaStandingsResponse,
+  LambdaBracketResponse,
+  LambdaAccountsResponse
 } from './types';
