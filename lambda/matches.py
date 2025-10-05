@@ -2,17 +2,18 @@
 # Exposes:
 #   - list_matches(payload) -> HTTP response dict
 #   - update_score(payload, auth_user) -> HTTP response dict
+#   - create_match(payload, auth_user) -> HTTP response dict
+#   - update_match(payload, auth_user) -> HTTP response dict
+#   - delete_match(payload, auth_user) -> HTTP response dict
 #
-# S3 layout (root):
-#   man/matches_group.json
-#   man/matches_elim.json
-#   woman/matches_group.json
-#   woman/matches_elim.json
+# S3 layout:
+#   data/{category}/matches.json
 #
-# Payloads:
-#   list:  { category: "man"|"woman", phase: "group"|"elim" }
-#   update:{ category, phase, matchId, status:"scheduled"|"in_progress"|"final",
-#            sets: [ {p1:int, p2:int} x5 ] }
+# Match structure:
+#   - id: numeric (always auto-generated, e.g., 1, 2, 3)
+#   - type: "group" or "elimination"
+#   - group: group ID for group matches
+#   - round: round number for elimination matches
 
 import os
 import json
@@ -58,10 +59,8 @@ def _now_iso():
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 # ---------- Paths ----------
-def _p_matches(category: str, phase: str) -> str:
-    if phase == "group":
-        return f"data/{category}/matches_group.json"
-    return f"data/{category}/matches_elim.json"
+def _p_matches(category: str) -> str:
+    return f"data/{category}/matches.json"
 
 # ---------- Scoring rules ----------
 def _valid_set(a: int, b: int) -> bool:
@@ -85,14 +84,31 @@ def _compute_winner(sets):
 # ---------- API: list ----------
 def list_matches(payload: dict):
     category = (payload or {}).get("category")
-    phase = (payload or {}).get("phase")
+    match_type = (payload or {}).get("type")  # "group" or "elimination"
+    phase = (payload or {}).get("phase")  # Legacy support: "group" or "elim"
+    
     if category not in ("man", "woman"):
         return _resp(400, {"error": "category must be man|woman"})
-    if phase not in ("group", "elim"):
-        return _resp(400, {"error": "phase must be group|elim"})
 
-    data = _get_json(_p_matches(category, phase), {"matches": [], "version": 1})
-    return _resp(200, {"matches": data.get("matches", [])})
+    data = _get_json(_p_matches(category), {"matches": [], "version": 1})
+    matches = data.get("matches", [])
+    
+    # Filter by type if specified (support both new 'type' and legacy 'phase' parameters)
+    filter_type = None
+    if match_type:
+        if match_type not in ("group", "elimination"):
+            return _resp(400, {"error": "type must be group|elimination"})
+        filter_type = match_type
+    elif phase:
+        if phase not in ("group", "elim"):
+            return _resp(400, {"error": "phase must be group|elim"})
+        # Map legacy phase to new type
+        filter_type = "group" if phase == "group" else "elimination"
+    
+    if filter_type:
+        matches = [m for m in matches if m.get("type") == filter_type]
+    
+    return _resp(200, {"matches": matches})
 
 # ---------- API: update score ----------
 def update_score(payload: dict, auth_user: dict):
@@ -100,21 +116,24 @@ def update_score(payload: dict, auth_user: dict):
         return _resp(401, {"error": "Unauthorized"})
 
     category = (payload or {}).get("category")
-    phase = (payload or {}).get("phase")
     match_id = (payload or {}).get("matchId")
     sets = (payload or {}).get("sets")
     status = (payload or {}).get("status")
 
     if category not in ("man", "woman"):
         return _resp(400, {"error": "category must be man|woman"})
-    if phase not in ("group", "elim"):
-        return _resp(400, {"error": "phase must be group|elim"})
     if status not in ("scheduled", "in_progress", "final"):
         return _resp(400, {"error": "status invalid"})
     if not (match_id and isinstance(sets, list) and len(sets) == 5):
         return _resp(400, {"error": "matchId and exactly 5 sets required"})
+    
+    # Ensure match_id is numeric
+    try:
+        match_id = int(match_id)
+    except (ValueError, TypeError):
+        return _resp(400, {"error": "matchId must be a number"})
 
-    key = _p_matches(category, phase)
+    key = _p_matches(category)
     mf = _get_json(key, {"matches": []})
     matches = mf.get("matches", [])
 
@@ -151,7 +170,7 @@ def update_score(payload: dict, auth_user: dict):
     _put_json(key, mf)
 
     # If elimination match with advancesTo and we have a winner, propagate to next round
-    if phase == "elim" and m.get("advancesTo") and m.get("winner"):
+    if m.get("type") == "elimination" and m.get("advancesTo") and m.get("winner"):
         adv = m["advancesTo"]
         # Re-read to avoid racing with ourselves (simple approach)
         emf = _get_json(key, {"matches": []})
@@ -161,6 +180,17 @@ def update_score(payload: dict, auth_user: dict):
             emf["updatedAt"] = _now_iso()
             _put_json(key, emf)
 
+    # Recalculate standings if this is a group match
+    if m.get("type") == "group":
+        try:
+            import standings
+            standings_payload = {"category": category}
+            standings_result = standings.compute_standings(standings_payload, auth_user)
+            # Note: We don't return the standings result, just recalculate silently
+        except Exception as e:
+            # Log error but don't fail the match update
+            print(f"Warning: Failed to recalculate standings: {e}")
+
     return _resp(200, {"match": m})
 
 # ---------- API: create match ----------
@@ -169,21 +199,27 @@ def create_match(payload: dict, auth_user: dict):
     if not auth_user or auth_user.get("role") != "admin":
         return _resp(403, {"error": "Admin access required"})
     
-    match_id = (payload or {}).get("id", "").strip()
+    match_id = (payload or {}).get("id")
     player1 = (payload or {}).get("player1", "").strip()
     player2 = (payload or {}).get("player2", "").strip()
     winner = (payload or {}).get("winner")
     status = (payload or {}).get("status", "pending").strip()
     sets = (payload or {}).get("sets", [])
     category = (payload or {}).get("category", "").strip()
-    phase = (payload or {}).get("phase", "group").strip()
-    group_id = (payload or {}).get("groupId")
+    match_type = (payload or {}).get("type", "group").strip()
+    group_id = (payload or {}).get("group")
+    round_num = (payload or {}).get("round")
     scheduled_at = (payload or {}).get("scheduledAt")
     advances_to = (payload or {}).get("advancesTo")
     
-    # Validation
-    if not match_id:
-        return _resp(400, {"error": "match id required"})
+    # Load existing matches to generate unique ID
+    key = _p_matches(category)
+    matches_data = _get_json(key, {"matches": [], "version": 1})
+    existing_matches = matches_data.get("matches", [])
+    
+    # Always generate unique ID automatically (ignore any provided id)
+    existing_ids = [m.get("id", 0) for m in existing_matches if isinstance(m.get("id"), int)]
+    match_id = max(existing_ids, default=0) + 1
     
     if not player1 or not player2:
         return _resp(400, {"error": "player1 and player2 required"})
@@ -194,14 +230,17 @@ def create_match(payload: dict, auth_user: dict):
     if category not in ("man", "woman"):
         return _resp(400, {"error": "category must be man|woman"})
     
-    if phase not in ("group", "elim"):
-        return _resp(400, {"error": "phase must be group|elim"})
+    if match_type not in ("group", "elimination"):
+        return _resp(400, {"error": "type must be group|elimination"})
     
     if status not in ("pending", "scheduled", "in_progress", "final"):
         return _resp(400, {"error": "status must be pending|scheduled|in_progress|final"})
     
-    if phase == "group" and not group_id:
-        return _resp(400, {"error": "groupId required for group phase"})
+    if match_type == "group" and not group_id:
+        return _resp(400, {"error": "group required for group type"})
+    
+    if match_type == "elimination" and not round_num:
+        return _resp(400, {"error": "round required for elimination type"})
     
     # Validate sets if provided
     if sets:
@@ -221,19 +260,12 @@ def create_match(payload: dict, auth_user: dict):
             if p1_score < 0 or p2_score < 0 or p1_score > 50 or p2_score > 50:
                 return _resp(400, {"error": f"set {i+1} scores must be between 0 and 50"})
     
-    # Load existing matches
-    key = _p_matches(category, phase)
-    matches_data = _get_json(key, {"matches": [], "version": 1})
-    existing_matches = matches_data.get("matches", [])
-    
-    # Check if match ID already exists
-    if any(m.get("id") == match_id for m in existing_matches):
-        return _resp(409, {"error": f"Match '{match_id}' already exists"})
+    # Note: existing_matches already loaded above for ID generation
     
     # Create new match
     new_match = {
         "id": match_id,
-        "phase": phase,
+        "type": match_type,
         "p1": player1,
         "p2": player2,
         "sets": sets,
@@ -243,11 +275,11 @@ def create_match(payload: dict, auth_user: dict):
         "updatedBy": auth_user.get("sub")
     }
     
-    # Add phase-specific fields
-    if phase == "group":
-        new_match["groupId"] = group_id
-    elif phase == "elim":
-        new_match["roundName"] = (payload or {}).get("roundName", "")
+    # Add type-specific fields
+    if match_type == "group":
+        new_match["group"] = group_id
+    elif match_type == "elimination":
+        new_match["round"] = round_num
         if advances_to:
             new_match["advancesTo"] = advances_to
     
@@ -271,41 +303,33 @@ def create_match(payload: dict, auth_user: dict):
 # ---------- API: update match ----------
 def update_match(payload: dict, auth_user: dict):
     """Update an existing match. Requires admin role."""
-    if not auth_user or auth_user.get("role") != "admin":
-        return _resp(403, {"error": "Admin access required"})
-    
-    match_id = (payload or {}).get("id", "").strip()
+
+    match_id = (payload or {}).get("id")
     category = (payload or {}).get("category", "").strip()
-    phase = (payload or {}).get("phase", "").strip()
     
     # Validation
-    if not match_id:
+    if match_id is None:
         return _resp(400, {"error": "match id required"})
+    
+    # Ensure match_id is numeric
+    try:
+        match_id = int(match_id)
+    except (ValueError, TypeError):
+        return _resp(400, {"error": "match id must be a number"})
     
     if category and category not in ("man", "woman"):
         return _resp(400, {"error": "category must be man|woman"})
     
-    if phase and phase not in ("group", "elim"):
-        return _resp(400, {"error": "phase must be group|elim"})
-    
-    # If no category/phase provided, try to find the match in both phases
-    phases_to_check = []
-    if category and phase:
-        phases_to_check = [(category, phase)]
-    elif category:
-        phases_to_check = [(category, "group"), (category, "elim")]
-    elif phase:
-        phases_to_check = [("man", phase), ("woman", phase)]
-    else:
-        phases_to_check = [("man", "group"), ("man", "elim"), ("woman", "group"), ("woman", "elim")]
+    # If no category provided, try to find the match in both categories
+    categories_to_check = [category] if category else ["man", "woman"]
     
     # Find the match
     match_found = None
     match_data = None
     match_key = None
     
-    for cat, ph in phases_to_check:
-        key = _p_matches(cat, ph)
+    for cat in categories_to_check:
+        key = _p_matches(cat)
         data = _get_json(key, {"matches": [], "version": 1})
         matches = data.get("matches", [])
         
@@ -314,11 +338,9 @@ def update_match(payload: dict, auth_user: dict):
                 match_found = match
                 match_data = data
                 match_key = key
-                # Update category and phase if not provided
+                # Update category if not provided
                 if not category:
                     payload["category"] = cat
-                if not phase:
-                    payload["phase"] = ph
                 break
         
         if match_found:
@@ -333,10 +355,10 @@ def update_match(payload: dict, auth_user: dict):
     winner = (payload or {}).get("winner")
     status = (payload or {}).get("status", "").strip()
     sets = (payload or {}).get("sets")
-    group_id = (payload or {}).get("groupId")
+    group_id = (payload or {}).get("group")
+    round_num = (payload or {}).get("round")
     scheduled_at = (payload or {}).get("scheduledAt")
     advances_to = (payload or {}).get("advancesTo")
-    round_name = (payload or {}).get("roundName")
     
     # Validation for update fields
     if player1 and player2 and player1 == player2:
@@ -376,12 +398,12 @@ def update_match(payload: dict, auth_user: dict):
         match_found["sets"] = sets
     if "scheduledAt" in payload:  # Allow setting to null
         match_found["scheduledAt"] = scheduled_at
-    if "groupId" in payload:  # Allow setting to null
-        match_found["groupId"] = group_id
+    if "group" in payload:  # Allow setting to null
+        match_found["group"] = group_id
+    if "round" in payload:  # Allow setting to null
+        match_found["round"] = round_num
     if "advancesTo" in payload:  # Allow setting to null
         match_found["advancesTo"] = advances_to
-    if round_name:
-        match_found["roundName"] = round_name
     
     # Update metadata
     match_found["updatedBy"] = auth_user.get("sub")
@@ -390,6 +412,17 @@ def update_match(payload: dict, auth_user: dict):
     
     # Save updated matches
     _put_json(match_key, match_data)
+    
+    # Recalculate standings if this is a group match
+    if match_found.get("type") == "group":
+        try:
+            import standings
+            standings_payload = {"category": payload.get("category", cat)}
+            standings_result = standings.compute_standings(standings_payload, auth_user)
+            # Note: We don't return the standings result, just recalculate silently
+        except Exception as e:
+            # Log error but don't fail the match update
+            print(f"Warning: Failed to recalculate standings: {e}")
     
     return _resp(200, {
         "success": True,
@@ -403,38 +436,32 @@ def delete_match(payload: dict, auth_user: dict):
     if not auth_user or auth_user.get("role") != "admin":
         return _resp(403, {"error": "Admin access required"})
     
-    match_id = (payload or {}).get("id", "").strip()
+    match_id = (payload or {}).get("id")
     category = (payload or {}).get("category", "").strip()
-    phase = (payload or {}).get("phase", "").strip()
     
     # Validation
-    if not match_id:
+    if match_id is None:
         return _resp(400, {"error": "match id required"})
+    
+    # Ensure match_id is numeric
+    try:
+        match_id = int(match_id)
+    except (ValueError, TypeError):
+        return _resp(400, {"error": "match id must be a number"})
     
     if category and category not in ("man", "woman"):
         return _resp(400, {"error": "category must be man|woman"})
     
-    if phase and phase not in ("group", "elim"):
-        return _resp(400, {"error": "phase must be group|elim"})
-    
-    # If no category/phase provided, try to find the match in both phases
-    phases_to_check = []
-    if category and phase:
-        phases_to_check = [(category, phase)]
-    elif category:
-        phases_to_check = [(category, "group"), (category, "elim")]
-    elif phase:
-        phases_to_check = [("man", phase), ("woman", phase)]
-    else:
-        phases_to_check = [("man", "group"), ("man", "elim"), ("woman", "group"), ("woman", "elim")]
+    # If no category provided, try to find the match in both categories
+    categories_to_check = [category] if category else ["man", "woman"]
     
     # Find the match
     match_found = None
     match_data = None
     match_key = None
     
-    for cat, ph in phases_to_check:
-        key = _p_matches(cat, ph)
+    for cat in categories_to_check:
+        key = _p_matches(cat)
         data = _get_json(key, {"matches": [], "version": 1})
         matches = data.get("matches", [])
         
@@ -459,6 +486,17 @@ def delete_match(payload: dict, auth_user: dict):
     
     # Save updated matches
     _put_json(match_key, match_data)
+    
+    # Recalculate standings if this was a group match
+    if match_found.get("type") == "group":
+        try:
+            import standings
+            standings_payload = {"category": payload.get("category", cat)}
+            standings_result = standings.compute_standings(standings_payload, auth_user)
+            # Note: We don't return the standings result, just recalculate silently
+        except Exception as e:
+            # Log error but don't fail the match deletion
+            print(f"Warning: Failed to recalculate standings: {e}")
     
     return _resp(200, {
         "success": True,

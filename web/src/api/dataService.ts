@@ -15,20 +15,18 @@ class DataService {
   async getPlayers(category: Category): Promise<Player[]> {
     try {
       const response = await lambdaService.listAccounts(category);
-      console.log('Lambda response for accounts:', response);
       const accounts = response.accounts || response.users || [];
-      console.log('Accounts array:', accounts);
       
       // Convert accounts to players format for backward compatibility
+      // Include both 'player' and 'admin' roles since all admins are also players
       const players = accounts
-        .filter((account: Account) => account.role === 'player')
+        .filter((account: Account) => account.role === 'player' || account.role === 'admin')
         .map((account: Account) => ({
-          id: account.playerId.toString(),
+          id: account.playerId ? account.playerId.toString() : account.username,
           name: account.name,
           surname: account.surname,
           category: account.category,
         }));
-      console.log('Converted players:', players);
       return players;
     } catch (error) {
       console.error(`Get players error for ${category}:`, error);
@@ -89,11 +87,25 @@ class DataService {
   // Group Matches
   async getGroupMatches(category: Category): Promise<GroupMatch[]> {
     try {
+      console.log(`dataService.getGroupMatches - Called for category: ${category}`);
       const response = await lambdaService.listMatches(category, 'group');
+      console.log(`dataService.getGroupMatches - Response for ${category}:`, response);
       return response.matches || [];
     } catch (error) {
       console.error(`Get group matches error for ${category}:`, error);
       return [];
+    }
+  }
+
+  async createMatch(match: any): Promise<boolean> {
+    try {
+      console.log('dataService.createMatch - Called with:', match);
+      const response = await lambdaService.createMatch(match);
+      console.log('dataService.createMatch - Lambda response:', response);
+      return response.success || false;
+    } catch (error) {
+      console.error('Create match error:', error);
+      return false;
     }
   }
 
@@ -105,7 +117,7 @@ class DataService {
         await lambdaService.createMatch({
           ...match,
           category,
-          phase: 'group'
+          type: 'group'
         });
       }
       return true;
@@ -118,7 +130,9 @@ class DataService {
   // Elimination Matches
   async getEliminationMatches(category: Category): Promise<EliminationMatch[]> {
     try {
+      console.log(`dataService.getEliminationMatches - Called for category: ${category}`);
       const response = await lambdaService.listMatches(category, 'elim');
+      console.log(`dataService.getEliminationMatches - Response for ${category}:`, response);
       return response.matches || [];
     } catch (error) {
       console.error(`Get elimination matches error for ${category}:`, error);
@@ -134,7 +148,7 @@ class DataService {
         await lambdaService.createMatch({
           ...match,
           category,
-          phase: 'elim'
+          type: 'elimination'
         });
       }
       return true;
@@ -271,6 +285,7 @@ class DataService {
   // Get upcoming matches from both categories
   async getUpcomingMatches(): Promise<(GroupMatch | EliminationMatch)[]> {
     try {
+      console.log('dataService.getUpcomingMatches - Called');
       const [manGroupMatches, manElimMatches, womanGroupMatches, womanElimMatches] = await Promise.all([
         this.getGroupMatches('man'),
         this.getEliminationMatches('man'),

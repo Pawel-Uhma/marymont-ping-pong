@@ -3,29 +3,28 @@ import { dataService } from '../api';
 import type { Player, Category, Group } from '../api/types';
 
 interface GroupGeneratorProps {
-  onGroupsGenerated: () => void;
+  onGroupsUpdated: () => void;
 }
 
-interface DraggedPlayer {
-  player: Player;
-  sourceGroup: string | null;
-  sourceIndex: number;
-}
-
-export function GroupGenerator({ onGroupsGenerated }: GroupGeneratorProps) {
+export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
   const [selectedCategory, setSelectedCategory] = useState<Category>('man');
-  const [allPlayers, setAllPlayers] = useState<Player[]>([]); // All players for reference
-  const [unassignedPlayers, setUnassignedPlayers] = useState<Player[]>([]); // Players not in groups
+  const [players, setPlayers] = useState<Player[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [draggedPlayer, setDraggedPlayer] = useState<DraggedPlayer | null>(null);
+  const [playerGroupAssignments, setPlayerGroupAssignments] = useState<{[playerId: string]: number}>({});
+  const [numberOfGroups, setNumberOfGroups] = useState<number>(4);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Load players and existing groups
+  // Load data when category changes
   useEffect(() => {
     loadData();
   }, [selectedCategory]);
+
+  // Update player assignments when groups change
+  useEffect(() => {
+    updatePlayerAssignments();
+  }, [groups]);
 
   const loadData = async () => {
     try {
@@ -37,17 +36,19 @@ export function GroupGenerator({ onGroupsGenerated }: GroupGeneratorProps) {
         dataService.getGroups(selectedCategory)
       ]);
       
-      setAllPlayers(playersData);
-      
-      // Find unassigned players (not in any group)
-      const assignedPlayerIds = new Set<string>();
-      groupsData.forEach(group => {
-        group.players.forEach(playerId => assignedPlayerIds.add(playerId));
-      });
-      
-      const unassigned = playersData.filter(player => !assignedPlayerIds.has(player.id));
-      setUnassignedPlayers(unassigned);
+      setPlayers(playersData);
       setGroups(groupsData);
+      
+      // Initialize player assignments based on current groups
+      const assignments: {[playerId: string]: number} = {};
+      playersData.forEach(player => {
+        const assignedGroup = groupsData.find(group => 
+          group.players.includes(player.id)
+        );
+        assignments[player.id] = assignedGroup ? parseInt(assignedGroup.id) : 0;
+      });
+      setPlayerGroupAssignments(assignments);
+      
     } catch (error) {
       console.error('Load data error:', error);
       setError('Failed to load players and groups');
@@ -56,187 +57,160 @@ export function GroupGenerator({ onGroupsGenerated }: GroupGeneratorProps) {
     }
   };
 
-  // Create initial groups if none exist
-  const createInitialGroups = () => {
-    const numGroups = Math.ceil(allPlayers.length / 4); // 4 players per group
-    const newGroups: Group[] = [];
-    
-    for (let i = 0; i < numGroups; i++) {
-      newGroups.push({
-        id: `group_${String.fromCharCode(65 + i)}`, // A, B, C, etc.
-        players: []
-      });
-    }
-    
-    setGroups(newGroups);
+  const updatePlayerAssignments = () => {
+    const assignments: {[playerId: string]: number} = {};
+    players.forEach(player => {
+      const assignedGroup = groups.find(group => 
+        group.players.includes(player.id)
+      );
+      assignments[player.id] = assignedGroup ? parseInt(assignedGroup.id) : 0;
+    });
+    setPlayerGroupAssignments(assignments);
   };
 
-  // Add a new group
-  const addNewGroup = () => {
-    const existingGroupIds = groups.map(g => g.id);
-    let groupNumber = 1;
-    let newGroupId = `group_${groupNumber}`;
-    
-    // Find the next available group number
-    while (existingGroupIds.includes(newGroupId)) {
-      groupNumber++;
-      newGroupId = `group_${groupNumber}`;
-    }
-    
-    const newGroup: Group = {
-      id: newGroupId,
-      players: []
-    };
-    
-    setGroups(prev => [...prev, newGroup]);
+  const handleCategoryChange = (category: Category) => {
+    setSelectedCategory(category);
   };
 
-  // Handle drag start
-  const handleDragStart = (e: React.DragEvent, player: Player, sourceGroup: string | null, sourceIndex: number) => {
-    setDraggedPlayer({ player, sourceGroup, sourceIndex });
-    e.dataTransfer.effectAllowed = 'move';
+  const handlePlayerGroupChange = (playerId: string, groupId: number) => {
+    setPlayerGroupAssignments(prev => ({
+      ...prev,
+      [playerId]: groupId
+    }));
   };
 
-  // Handle drag over
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+  const handleNumberOfGroupsChange = (value: number) => {
+    setNumberOfGroups(Math.max(1, Math.min(10, value)));
   };
 
-  // Handle drop
-  const handleDrop = (e: React.DragEvent, targetGroupId: string, targetIndex?: number) => {
-    e.preventDefault();
-    
-    if (!draggedPlayer) return;
-
-    const { player, sourceGroup, sourceIndex } = draggedPlayer;
-    
-    // Remove player from source
-    let newGroups = [...groups];
-    
-    if (sourceGroup) {
-      // Remove from existing group
-      const sourceGroupIndex = newGroups.findIndex(g => g.id === sourceGroup);
-      if (sourceGroupIndex !== -1) {
-        newGroups[sourceGroupIndex].players.splice(sourceIndex, 1);
-      }
-    } else {
-      // Remove from unassigned players
-      setUnassignedPlayers(prev => prev.filter(p => p.id !== player.id));
-    }
-    
-    // Add player to target group
-    const targetGroupIndex = newGroups.findIndex(g => g.id === targetGroupId);
-    if (targetGroupIndex !== -1) {
-      if (targetIndex !== undefined) {
-        newGroups[targetGroupIndex].players.splice(targetIndex, 0, player.id);
-      } else {
-        newGroups[targetGroupIndex].players.push(player.id);
-      }
-    }
-    
-    setGroups(newGroups);
-    setDraggedPlayer(null);
-  };
-
-  // Handle drop on unassigned area
-  const handleDropUnassigned = (e: React.DragEvent) => {
-    e.preventDefault();
-    
-    if (!draggedPlayer) return;
-
-    const { player, sourceGroup, sourceIndex } = draggedPlayer;
-    
-    // Remove from source group
-    if (sourceGroup) {
-      const newGroups = [...groups];
-      const sourceGroupIndex = newGroups.findIndex(g => g.id === sourceGroup);
-      if (sourceGroupIndex !== -1) {
-        newGroups[sourceGroupIndex].players.splice(sourceIndex, 1);
-        setGroups(newGroups);
-      }
-    }
-    
-    // Add back to unassigned players
-    setUnassignedPlayers(prev => [...prev, player]);
-    setDraggedPlayer(null);
-  };
-
-  // Save groups to database
-  const handleSaveGroups = async () => {
+  const handleResetAndCreateGroups = async () => {
     try {
       setIsSaving(true);
       setError('');
-      
-      // Filter out empty groups
-      const nonEmptyGroups = groups.filter(group => group.players.length > 0);
-      
-      if (nonEmptyGroups.length === 0) {
-        setError('No groups with players to save');
-        return;
+
+      // Create empty groups based on the number selected
+      const newGroups: Group[] = [];
+      for (let i = 1; i <= numberOfGroups; i++) {
+        newGroups.push({
+          id: i.toString(),
+          players: []
+        });
       }
+
+      // Save the new groups (this will clear existing groups)
+      await dataService.saveGroups(selectedCategory, newGroups);
       
-      const success = await dataService.saveGroups(selectedCategory, nonEmptyGroups);
+      // Update local state
+      setGroups(newGroups);
       
-      if (success) {
-        onGroupsGenerated();
-        // Close modal or show success message
-      } else {
-        setError('Failed to save groups');
-      }
+      // Clear all player assignments
+      const clearedAssignments: {[playerId: string]: number} = {};
+      players.forEach(player => {
+        clearedAssignments[player.id] = 0;
+      });
+      setPlayerGroupAssignments(clearedAssignments);
+      
+      onGroupsUpdated();
+      
     } catch (error) {
-      console.error('Save groups error:', error);
-      setError('An error occurred while saving groups');
+      console.error('Reset groups error:', error);
+      setError('Failed to reset groups');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Get player name by ID
-  const getPlayerName = (playerId: string): string => {
-    const player = allPlayers.find(p => p.id === playerId);
-    return player ? `${player.name} ${player.surname}` : 'Unknown Player';
+  const handleSaveGroups = async () => {
+    try {
+      setIsSaving(true);
+      setError('');
+
+      // Create groups based on current assignments
+      const newGroups: Group[] = [];
+      const groupMap: {[groupId: number]: string[]} = {};
+
+      // Initialize empty groups
+      for (let i = 1; i <= numberOfGroups; i++) {
+        groupMap[i] = [];
+        newGroups.push({
+          id: i.toString(),
+          players: []
+        });
+      }
+
+      // Assign players to groups
+      Object.entries(playerGroupAssignments).forEach(([playerId, groupId]) => {
+        if (groupId > 0 && groupMap[groupId]) {
+          groupMap[groupId].push(playerId);
+        }
+      });
+
+      // Update groups with assigned players
+      newGroups.forEach(group => {
+        const groupIdNum = parseInt(group.id);
+        group.players = groupMap[groupIdNum] || [];
+      });
+
+      // Save groups
+      await dataService.saveGroups(selectedCategory, newGroups);
+      
+      // Update local state
+      setGroups(newGroups);
+      
+      onGroupsUpdated();
+      
+    } catch (error) {
+      console.error('Save groups error:', error);
+      setError('Failed to save groups');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Get group options for the combobox
+  const getGroupOptions = () => {
+    const options = [{ value: 0, label: 'No Group' }];
+    for (let i = 1; i <= numberOfGroups; i++) {
+      const playerCount = Object.values(playerGroupAssignments).filter(id => id === i).length;
+      options.push({
+        value: i,
+        label: `Group ${i} (${playerCount} players)`
+      });
+    }
+    return options;
+  };
+
+  // Get players by group
+  const getPlayersByGroup = () => {
+    const grouped: {[groupId: number]: Player[]} = {};
+    
+    // Initialize empty groups
+    for (let i = 1; i <= numberOfGroups; i++) {
+      grouped[i] = [];
+    }
+    
+    // Add players to their assigned groups
+    players.forEach(player => {
+      const groupId = playerGroupAssignments[player.id];
+      if (groupId > 0 && grouped[groupId]) {
+        grouped[groupId].push(player);
+      }
+    });
+    
+    return grouped;
   };
 
   if (isLoading) {
     return (
-      <div className="group-generator-loading">
-        <div className="loading">Loading players and groups...</div>
+      <div className="loading">
+        <div className="loading-spinner"></div>
+        <p>Loading players and groups...</p>
       </div>
     );
   }
 
   return (
     <div className="group-generator">
-      <div className="group-generator-header">
-        <div className="group-generator-info">
-          <h3>Group Generation</h3>
-          <p>Drag and drop players to create groups</p>
-        </div>
-        <div className="group-generator-actions">
-          <button 
-            className="secondary-btn"
-            onClick={createInitialGroups}
-            disabled={groups.length > 0}
-          >
-            Create Groups
-          </button>
-          <button 
-            className="secondary-btn"
-            onClick={addNewGroup}
-          >
-            Add Group
-          </button>
-          <button 
-            className="primary-btn"
-            onClick={handleSaveGroups}
-            disabled={isSaving || groups.length === 0}
-          >
-            {isSaving ? 'Saving...' : 'Save Groups'}
-          </button>
-        </div>
-      </div>
-
       {error && (
         <div className="error-message">
           {error}
@@ -244,91 +218,130 @@ export function GroupGenerator({ onGroupsGenerated }: GroupGeneratorProps) {
         </div>
       )}
 
-      {/* Category Tabs */}
-      <div className="category-tabs">
-        <button 
-          className={`category-tab ${selectedCategory === 'man' ? 'active' : ''}`}
-          onClick={() => setSelectedCategory('man')}
-        >
-          Men
-        </button>
-        <button 
-          className={`category-tab ${selectedCategory === 'woman' ? 'active' : ''}`}
-          onClick={() => setSelectedCategory('woman')}
-        >
-          Women
-        </button>
-      </div>
-
-      <div className="group-generator-content">
-        {/* Unassigned Players */}
-        <div className="unassigned-players">
-          <h4>Unassigned Players ({unassignedPlayers.length})</h4>
-          <div 
-            className="unassigned-area"
-            onDragOver={handleDragOver}
-            onDrop={handleDropUnassigned}
-          >
-            {unassignedPlayers.map((player, index) => (
-              <div
-                key={player.id}
-                className="player-card"
-                draggable
-                onDragStart={(e) => handleDragStart(e, player, null, index)}
-              >
-                <span className="player-name">{player.name} {player.surname}</span>
-                <span className="player-id">#{player.id}</span>
-              </div>
-            ))}
-            {unassignedPlayers.length === 0 && (
-              <div className="empty-area">
-                <p>All players assigned to groups</p>
-              </div>
-            )}
+      {/* Header Controls */}
+      <div className="groups-header">
+        <div className="category-selector">
+          <label className="category-label">Category:</label>
+          <div className="category-tabs">
+            <button 
+              className={`category-tab ${selectedCategory === 'man' ? 'active' : ''}`}
+              onClick={() => handleCategoryChange('man')}
+              disabled={isSaving}
+            >
+              Men
+            </button>
+            <button 
+              className={`category-tab ${selectedCategory === 'woman' ? 'active' : ''}`}
+              onClick={() => handleCategoryChange('woman')}
+              disabled={isSaving}
+            >
+              Women
+            </button>
           </div>
         </div>
 
-        {/* Groups */}
-        <div className="groups-container">
-          <h4>Groups ({groups.length})</h4>
-          <div className="groups-grid">
-            {groups.map((group) => (
-              <div key={group.id} className="group-card">
+        <div className="groups-controls">
+          <div className="group-count-selector">
+            <label htmlFor="groupCount" className="group-count-label">Number of Groups:</label>
+            <input
+              id="groupCount"
+              type="number"
+              min="1"
+              max="10"
+              value={numberOfGroups}
+              onChange={(e) => handleNumberOfGroupsChange(parseInt(e.target.value) || 1)}
+              className="group-count-input"
+              disabled={isSaving}
+            />
+          </div>
+          
+          <button 
+            className="reset-groups-btn"
+            onClick={handleResetAndCreateGroups}
+            disabled={isSaving}
+          >
+            {isSaving ? 'Resetting...' : 'Reset and Create Groups'}
+          </button>
+        </div>
+      </div>
+
+      {/* Players List */}
+      <div className="players-section">
+        <h3>Assign Players to Groups</h3>
+        <div className="players-list">
+          {players.length === 0 ? (
+            <div className="no-players">
+              <p>No players found for {selectedCategory} category</p>
+              <p>Players array length: {players.length}</p>
+            </div>
+          ) : (
+            players.map((player) => (
+            <div key={player.id} className="player-assignment">
+              <div className="player-info">
+                <span className="player-name">{player.name} {player.surname}</span>
+                <span className="player-id">#{player.id}</span>
+              </div>
+              <select
+                value={playerGroupAssignments[player.id] || 0}
+                onChange={(e) => handlePlayerGroupChange(player.id, parseInt(e.target.value))}
+                className="group-select"
+                disabled={isSaving}
+              >
+                {getGroupOptions().map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Groups Overview */}
+      <div className="groups-overview">
+        <h3>Groups Overview</h3>
+        <div className="groups-grid">
+          {Array.from({ length: numberOfGroups }, (_, i) => {
+            const groupId = i + 1;
+            const playersInGroup = getPlayersByGroup()[groupId] || [];
+            
+            return (
+              <div key={groupId} className="group-card">
                 <div className="group-header">
-                  <h5>Group {group.id.replace('group_', '')}</h5>
-                  <span className="group-count">({group.players.length} players)</span>
+                  <h4>Group {groupId}</h4>
+                  <span className="player-count">({playersInGroup.length} players)</span>
                 </div>
-                <div 
-                  className="group-players"
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, group.id)}
-                >
-                  {group.players.map((playerId, index) => (
-                    <div
-                      key={playerId}
-                      className="player-card"
-                      draggable
-                      onDragStart={(e) => {
-                        const player = allPlayers.find(p => p.id === playerId);
-                        if (player) {
-                          handleDragStart(e, player, group.id, index);
-                        }
-                      }}
-                    >
-                      <span className="player-name">{getPlayerName(playerId)}</span>
-                      <span className="player-id">#{playerId}</span>
-                    </div>
-                  ))}
-                  {group.players.length === 0 && (
+                <div className="group-players">
+                  {playersInGroup.length > 0 ? (
+                    playersInGroup.map(player => (
+                      <div key={player.id} className="group-player">
+                        <span className="player-name">{player.name} {player.surname}</span>
+                        <span className="player-id">#{player.id}</span>
+                      </div>
+                    ))
+                  ) : (
                     <div className="empty-group">
-                      <p>Drop players here</p>
+                      <span>No players assigned</span>
                     </div>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      </div>
+
+      {/* Save Button */}
+      <div className="groups-actions">
+        <button 
+          className="save-groups-btn"
+          onClick={handleSaveGroups}
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save Groups'}
+        </button>
       </div>
     </div>
   );

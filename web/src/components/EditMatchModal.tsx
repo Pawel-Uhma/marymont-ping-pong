@@ -9,11 +9,7 @@ interface EditMatchModalProps {
   onClose: () => void;
 }
 
-interface DraggedPlayer {
-  player: Player;
-  sourceGroup: string;
-  sourceIndex: number;
-}
+// Removed DraggedPlayer interface - no longer needed
 
 interface MatchDraft {
   player1: Player | null;
@@ -27,7 +23,7 @@ interface MatchDraft {
 export function EditMatchModal({ category, match, onMatchUpdated, onClose }: EditMatchModalProps) {
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [draggedPlayer, setDraggedPlayer] = useState<DraggedPlayer | null>(null);
+  // Removed draggedPlayer state - no longer needed
   const [matchDraft, setMatchDraft] = useState<MatchDraft>({
     player1: null,
     player2: null,
@@ -86,41 +82,40 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
     }
   };
 
-  // Handle drag start
-  const handleDragStart = (e: React.DragEvent, player: Player, sourceGroup: string, sourceIndex: number) => {
-    setDraggedPlayer({ player, sourceGroup, sourceIndex });
-    e.dataTransfer.effectAllowed = 'move';
+  // Get available players based on match type and group
+  const getAvailablePlayers = (): Player[] => {
+    if (matchDraft.phase === 'group' && matchDraft.groupId) {
+      // For group matches, only show players from the selected group
+      const selectedGroup = groups.find(g => g.id === matchDraft.groupId);
+      if (selectedGroup) {
+        return allPlayers.filter(player => selectedGroup.players.includes(player.id));
+      }
+      return [];
+    } else {
+      // For elimination matches, show all players
+      return allPlayers;
+    }
   };
 
-  // Handle drag over
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+  // Handle player selection
+  const handlePlayerSelect = (playerSlot: 'player1' | 'player2', playerId: string) => {
+    if (playerId === '') {
+      setMatchDraft(prev => ({
+        ...prev,
+        [playerSlot]: null
+      }));
+    } else {
+      const selectedPlayer = allPlayers.find(p => p.id === playerId);
+      if (selectedPlayer) {
+        setMatchDraft(prev => ({
+          ...prev,
+          [playerSlot]: selectedPlayer
+        }));
+      }
+    }
   };
 
-  // Handle drop on player slot
-  const handleDropOnPlayer = (e: React.DragEvent, playerSlot: 'player1' | 'player2') => {
-    e.preventDefault();
-    
-    if (!draggedPlayer) return;
-
-    const { player } = draggedPlayer;
-    
-    setMatchDraft(prev => ({
-      ...prev,
-      [playerSlot]: player
-    }));
-    
-    setDraggedPlayer(null);
-  };
-
-  // Remove player from match
-  const removePlayerFromMatch = (playerSlot: 'player1' | 'player2') => {
-    setMatchDraft(prev => ({
-      ...prev,
-      [playerSlot]: null
-    }));
-  };
+  // Removed removePlayerFromMatch function - no longer needed
 
   // Handle date change
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -215,12 +210,7 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
   };
 
 
-  // Get players in a group
-  const getPlayersInGroup = (group: Group): Player[] => {
-    return group.players
-      .map(playerId => allPlayers.find(p => p.id === playerId))
-      .filter((player): player is Player => player !== undefined);
-  };
+  // Removed getPlayersInGroup function - no longer needed
 
   if (isLoading) {
     return (
@@ -307,99 +297,56 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
             </select>
           </div>
 
-          {/* Player Slots */}
-          <div className="match-slots">
-            <div className="slot-container">
+          {/* Player Selection */}
+          <div className="player-selection">
+            <div className="player-slot-container">
               <label className="slot-label">Player 1</label>
-              <div 
-                className={`player-slot ${matchDraft.player1 ? 'filled' : 'empty'}`}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDropOnPlayer(e, 'player1')}
+              <select
+                value={matchDraft.player1?.id || ''}
+                onChange={(e) => handlePlayerSelect('player1', e.target.value)}
+                className="player-select"
               >
-                {matchDraft.player1 ? (
-                  <div className="player-in-slot">
-                    <span className="player-name">{matchDraft.player1.name} {matchDraft.player1.surname}</span>
-                    <button 
-                      className="remove-player-btn"
-                      onClick={() => removePlayerFromMatch('player1')}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ) : (
-                  <div className="empty-slot">
-                    <span>Drop Player 1 here</span>
-                  </div>
-                )}
-              </div>
+                <option value="">Select Player 1</option>
+                {getAvailablePlayers().map(player => (
+                  <option key={player.id} value={player.id}>
+                    {player.name} {player.surname} (#{player.id})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="vs-divider">VS</div>
 
-            <div className="slot-container">
+            <div className="player-slot-container">
               <label className="slot-label">Player 2</label>
-              <div 
-                className={`player-slot ${matchDraft.player2 ? 'filled' : 'empty'}`}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDropOnPlayer(e, 'player2')}
+              <select
+                value={matchDraft.player2?.id || ''}
+                onChange={(e) => handlePlayerSelect('player2', e.target.value)}
+                className="player-select"
               >
-                {matchDraft.player2 ? (
-                  <div className="player-in-slot">
-                    <span className="player-name">{matchDraft.player2.name} {matchDraft.player2.surname}</span>
-                    <button 
-                      className="remove-player-btn"
-                      onClick={() => removePlayerFromMatch('player2')}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ) : (
-                  <div className="empty-slot">
-                    <span>Drop Player 2 here</span>
-                  </div>
-                )}
-              </div>
+                <option value="">Select Player 2</option>
+                {getAvailablePlayers().map(player => (
+                  <option key={player.id} value={player.id}>
+                    {player.name} {player.surname} (#{player.id})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
 
-        {/* Players by Groups */}
-        <div className="players-by-groups">
-          <h4>Players by Groups</h4>
-          <div className="groups-container">
-            {groups.map((group) => {
-              const playersInGroup = getPlayersInGroup(group);
-              return (
-                <div key={group.id} className="group-section">
-                  <h5>Group {group.id.replace('group_', '')}</h5>
-                  <div className="group-players">
-                    {playersInGroup.map((player, index) => (
-                      <div
-                        key={player.id}
-                        className="player-card"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, player, group.id, index)}
-                      >
-                        <span className="player-name">{player.name} {player.surname}</span>
-                        <span className="player-id">#{player.id}</span>
-                      </div>
-                    ))}
-                    {playersInGroup.length === 0 && (
-                      <div className="empty-group">
-                        <p>No players in this group</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            
-            {groups.length === 0 && (
-              <div className="no-groups">
-                <p>No groups found. Please create groups first.</p>
-              </div>
-            )}
-          </div>
+        {/* Available Players Info */}
+        <div className="available-players-info">
+          <h4>Available Players</h4>
+          <p>
+            {matchDraft.phase === 'group' 
+              ? `Showing players from selected group (${matchDraft.groupId || 'none selected'})`
+              : 'Showing all players for elimination match'
+            }
+          </p>
+          <p className="player-count">
+            {getAvailablePlayers().length} player{getAvailablePlayers().length !== 1 ? 's' : ''} available
+          </p>
         </div>
       </div>
 

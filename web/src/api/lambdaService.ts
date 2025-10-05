@@ -127,7 +127,10 @@ class LambdaService {
   }
 
   async createMatch(match: any): Promise<LambdaResponse> {
-    return this.request("matches.create", match);
+    console.log('lambdaService.createMatch - Called with:', match);
+    const result = await this.request("matches.create", match);
+    console.log('lambdaService.createMatch - Backend response:', result);
+    return result;
   }
 
   async updateMatch(match: any): Promise<LambdaResponse> {

@@ -6,11 +6,15 @@ import { AddPlayerModal } from './components/AddPlayerModal'
 import { AccountManagement } from './components/AccountManagement'
 import { GroupGenerator } from './components/GroupGenerator'
 import { MatchCreator } from './components/MatchCreator'
+import { EditScoreModal } from './components/EditScoreModal'
+import { MyMatchesModal } from './components/MyMatchesModal'
+import { StandingsModal } from './components/StandingsModal'
 
 interface User {
   username: string;
   role: 'admin' | 'player';
   playerId: string | null;
+  category?: Category;
 }
 
 function App() {
@@ -21,19 +25,45 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   
   // Dashboard data
-  const [selectedCategory, setSelectedCategory] = useState<Category>('man')
   const [players, setPlayers] = useState<Player[]>([])
   const [nextMatch, setNextMatch] = useState<GroupMatch | EliminationMatch | null>(null)
   const [upcomingMatches, setUpcomingMatches] = useState<(GroupMatch | EliminationMatch)[]>([])
   const [myMatches, setMyMatches] = useState<(GroupMatch | EliminationMatch)[]>([])
   const [standings, setStandings] = useState<GroupStanding[]>([])
   const [bracket, setBracket] = useState<any>(null)
+  const [standingsCategory, setStandingsCategory] = useState<Category>('man')
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('')
   
   // Modal states
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false)
   const [showAccountManagement, setShowAccountManagement] = useState(false)
   const [showGroupGenerator, setShowGroupGenerator] = useState(false)
   const [showMatchCreator, setShowMatchCreator] = useState(false)
+  const [showEditScoreModal, setShowEditScoreModal] = useState(false)
+  const [selectedMatchForScore, setSelectedMatchForScore] = useState<GroupMatch | EliminationMatch | null>(null)
+  const [showMyMatchesModal, setShowMyMatchesModal] = useState(false)
+  const [showStandingsModal, setShowStandingsModal] = useState(false)
+
+  // Helper function to get user's category
+  const getUserCategory = async (playerId: string | null): Promise<Category> => {
+    if (!playerId) return 'man' // Default category
+    
+    try {
+      // Try to find the user in both categories
+      const [manPlayers, womanPlayers] = await Promise.all([
+        dataService.getPlayers('man'),
+        dataService.getPlayers('woman')
+      ])
+      
+      const allPlayers = [...manPlayers, ...womanPlayers]
+      const userPlayer = allPlayers.find(p => p.id === playerId)
+      
+      return userPlayer?.category || 'man'
+    } catch (error) {
+      console.error('Error getting user category:', error)
+      return 'man' // Default fallback
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,9 +74,27 @@ function App() {
       const response = await userService.login(credentials)
       
       if (response.success && response.user) {
-        setUser(response.user)
-        setIsLoggedIn(true)
-        setCredentials({ username: '', password: '' })
+        // Get user's category from their account data
+        try {
+          const userCategory = await getUserCategory(response.user.playerId)
+          const userWithCategory = {
+            ...response.user,
+            category: userCategory
+          }
+          setUser(userWithCategory)
+          setIsLoggedIn(true)
+          setCredentials({ username: '', password: '' })
+          
+          // Load dashboard data after successful login
+          loadDashboardData()
+        } catch (error) {
+          console.error('Error getting user category:', error)
+          // Still login but without category
+          setUser(response.user)
+          setIsLoggedIn(true)
+          setCredentials({ username: '', password: '' })
+          loadDashboardData()
+        }
       } else {
         setError(response.error || 'Login failed')
       }
@@ -65,6 +113,50 @@ function App() {
     setError('')
   }
 
+  // Handle Edit Score
+  const handleEditScore = (match: GroupMatch | EliminationMatch) => {
+    setSelectedMatchForScore(match)
+    setShowEditScoreModal(true)
+  }
+
+  const handleScoreUpdated = () => {
+    loadDashboardData() // Reload dashboard data after score update
+  }
+
+  // Handle My Matches
+  const handleMyMatches = () => {
+    setShowMyMatchesModal(true)
+  }
+
+  // Handle Standings
+  const handleStandings = () => {
+    setShowStandingsModal(true)
+  }
+
+  // Handle match edited from My Matches
+  const handleMatchEdited = (match: GroupMatch | EliminationMatch) => {
+    setSelectedMatchForScore(match)
+    setShowEditScoreModal(true)
+  }
+
+  // Handle standings category change
+  const handleStandingsCategoryChange = async (category: Category) => {
+    setStandingsCategory(category)
+    try {
+      const standingsData = await dataService.getStandings(category)
+      setStandings(standingsData)
+      
+      // Set the first group as selected
+      if (standingsData.length > 0) {
+        setSelectedGroupId(standingsData[0].groupId)
+      } else {
+        setSelectedGroupId('')
+      }
+    } catch (error) {
+      console.error('Error loading standings:', error)
+    }
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setCredentials(prev => ({ ...prev, [name]: value }))
@@ -73,6 +165,7 @@ function App() {
 
   // Load dashboard data
   const loadDashboardData = async () => {
+    console.log('App - loadDashboardData called');
     if (!user) return;
 
     try {
@@ -86,26 +179,34 @@ function App() {
       setPlayers(allPlayers)
 
       // Load next match for player
-      if (user.playerId) {
-        const nextMatchData = await dataService.getNextMatchForPlayer(selectedCategory, user.playerId)
+      if (user.playerId && user.category) {
+        const nextMatchData = await dataService.getNextMatchForPlayer(user.category, user.playerId)
         setNextMatch(nextMatchData)
         
         // Load player's matches
-        const myMatchesData = await dataService.getMatchesForPlayer(selectedCategory, user.playerId)
+        const myMatchesData = await dataService.getMatchesForPlayer(user.category, user.playerId)
         setMyMatches(myMatchesData)
       }
 
       // Load upcoming matches from both categories
       const upcomingMatchesData = await dataService.getUpcomingMatches()
+      console.log('App - Loaded upcoming matches:', upcomingMatchesData)
       setUpcomingMatches(upcomingMatchesData)
 
       // Load standings
-      const standingsData = await dataService.getStandings(selectedCategory)
+      const standingsData = await dataService.getStandings(standingsCategory)
       setStandings(standingsData)
+      
+      // Set the first group as selected if no group is selected
+      if (standingsData.length > 0 && !selectedGroupId) {
+        setSelectedGroupId(standingsData[0].groupId)
+      }
 
       // Load bracket
-      const bracketData = await dataService.getBracket(selectedCategory)
-      setBracket(bracketData)
+      if (user.category) {
+        const bracketData = await dataService.getBracket(user.category)
+        setBracket(bracketData)
+      }
     } catch (error) {
       console.error('Error loading dashboard data:', error)
     }
@@ -116,7 +217,7 @@ function App() {
     if (isLoggedIn && user) {
       loadDashboardData()
     }
-  }, [isLoggedIn, user, selectedCategory])
+  }, [isLoggedIn, user])
 
   // Helper functions
   const getPlayerName = (playerId: string): string => {
@@ -197,7 +298,12 @@ function App() {
                         ))}
                       </div>
                     </div>
-                    <button className="edit-score-btn">Edit Score</button>
+                    <button 
+                      className="edit-score-btn"
+                      onClick={() => handleEditScore(nextMatch)}
+                    >
+                      Edit Score
+                    </button>
                   </>
                 ) : (
                   <div className="no-match">
@@ -210,8 +316,18 @@ function App() {
             <div className="quick-actions">
               <h4>Quick Actions</h4>
               <div className="action-buttons">
-                <button className="action-btn blue">Report Score</button>
-                <button className="action-btn yellow">See All Matches</button>
+                <button 
+                  className="action-btn yellow"
+                  onClick={handleMyMatches}
+                >
+                  My Matches
+                </button>
+                <button 
+                  className="action-btn blue"
+                  onClick={handleStandings}
+                >
+                  Standings
+                </button>
               </div>
             </div>
             
@@ -223,13 +339,13 @@ function App() {
                     className="action-btn black"
                     onClick={() => setShowGroupGenerator(true)}
                   >
-                    Generate Groups
+                    Groups
                   </button>
                   <button 
                     className="action-btn blue"
                     onClick={() => setShowMatchCreator(true)}
                   >
-                    Add Matches
+                    Matches
                   </button>
                   <button 
                     className="action-btn red"
@@ -304,53 +420,64 @@ function App() {
                 <h3>Group Standings</h3>
                 <div className="tabs">
                   <button 
-                    className={`tab ${selectedCategory === 'man' ? 'active' : ''}`}
-                    onClick={() => setSelectedCategory('man')}
+                    className={`tab ${standingsCategory === 'man' ? 'active' : ''}`}
+                    onClick={() => handleStandingsCategoryChange('man')}
                   >
                     Men
                   </button>
                   <button 
-                    className={`tab ${selectedCategory === 'woman' ? 'active' : ''}`}
-                    onClick={() => setSelectedCategory('woman')}
+                    className={`tab ${standingsCategory === 'woman' ? 'active' : ''}`}
+                    onClick={() => handleStandingsCategoryChange('woman')}
                   >
                     Women
                   </button>
                 </div>
-                <div className="group-tabs">
-                  <button className="group-tab active">Group A</button>
-                  <button className="group-tab">Group B</button>
-                  <button className="group-tab">Group C</button>
-                </div>
+                {standings.length > 0 && (
+                  <div className="group-tabs">
+                    {standings.map((group) => (
+                      <button 
+                        key={group.groupId}
+                        className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
+                        onClick={() => setSelectedGroupId(group.groupId)}
+                      >
+                        Group {group.groupId}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="standings-table">
-                {standings.length > 0 ? (
-                  standings.map((group) => (
-                    <div key={group.groupId} className="group-standings-table">
-                      <h4>Group {group.groupId}</h4>
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Rank</th>
-                            <th>Player</th>
-                            <th>W-L</th>
-                            <th>Sets +/-</th>
-                            <th>Points +/-</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {group.table.map((player: PlayerStanding) => (
-                            <tr key={player.playerId}>
-                              <td>{player.rank}</td>
-                              <td>{getPlayerName(player.playerId)}</td>
-                              <td>{player.wins}-{player.losses}</td>
-                              <td>{player.setsFor - player.setsAgainst > 0 ? '+' : ''}{player.setsFor - player.setsAgainst}</td>
-                              <td>{player.pointsFor - player.pointsAgainst > 0 ? '+' : ''}{player.pointsFor - player.pointsAgainst}</td>
+                {standings.length > 0 && selectedGroupId ? (
+                  (() => {
+                    const selectedGroup = standings.find(group => group.groupId === selectedGroupId);
+                    return selectedGroup ? (
+                      <div key={selectedGroup.groupId} className="group-standings-table">
+                        <h4>Group {selectedGroup.groupId}</h4>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Rank</th>
+                              <th>Player</th>
+                              <th>W-L</th>
+                              <th>Sets +/-</th>
+                              <th>Points +/-</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ))
+                          </thead>
+                          <tbody>
+                            {selectedGroup.table.map((player: PlayerStanding) => (
+                              <tr key={player.playerId}>
+                                <td>{player.rank}</td>
+                                <td>{getPlayerName(player.playerId)}</td>
+                                <td>{player.wins}-{player.losses}</td>
+                                <td>{player.setsFor - player.setsAgainst > 0 ? '+' : ''}{player.setsFor - player.setsAgainst}</td>
+                                <td>{player.pointsFor - player.pointsAgainst > 0 ? '+' : ''}{player.pointsFor - player.pointsAgainst}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : null;
+                  })()
                 ) : (
                   <div className="no-standings">
                     <p>No standings available</p>
@@ -392,7 +519,7 @@ function App() {
           isOpen={showAddPlayerModal}
           onClose={() => setShowAddPlayerModal(false)}
           onPlayerAdded={loadDashboardData}
-          category={selectedCategory}
+          category={standingsCategory}
         />
 
         {/* Account Management */}
@@ -420,7 +547,7 @@ function App() {
           <div className="modal-overlay" onClick={() => setShowGroupGenerator(false)}>
             <div className="modal-content group-generator-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Generate Groups</h2>
+                <h2>Groups</h2>
                 <button 
                   className="modal-close" 
                   onClick={() => setShowGroupGenerator(false)}
@@ -430,7 +557,7 @@ function App() {
               </div>
               <div className="modal-body">
                 <GroupGenerator 
-                  onGroupsGenerated={loadDashboardData}
+                  onGroupsUpdated={loadDashboardData}
                 />
               </div>
             </div>
@@ -442,7 +569,7 @@ function App() {
           <div className="modal-overlay" onClick={() => setShowMatchCreator(false)}>
             <div className="modal-content match-creator-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Add Matches</h2>
+                <h2>Matches</h2>
                 <button 
                   className="modal-close" 
                   onClick={() => setShowMatchCreator(false)}
@@ -453,10 +580,43 @@ function App() {
               <div className="modal-body">
                 <MatchCreator 
                   onMatchesCreated={loadDashboardData}
+                  onEditScore={handleEditScore}
                 />
               </div>
             </div>
           </div>
+        )}
+
+        {/* Edit Score Modal */}
+        {showEditScoreModal && selectedMatchForScore && (
+          <EditScoreModal
+            isOpen={showEditScoreModal}
+            onClose={() => setShowEditScoreModal(false)}
+            onScoreUpdated={handleScoreUpdated}
+            match={selectedMatchForScore}
+            players={players}
+          />
+        )}
+
+        {/* My Matches Modal */}
+        {showMyMatchesModal && user && user.playerId && (
+          <MyMatchesModal
+            isOpen={showMyMatchesModal}
+            onClose={() => setShowMyMatchesModal(false)}
+            onMatchEdited={(match: GroupMatch | EliminationMatch) => handleMatchEdited(match)}
+            userId={user.playerId}
+            category={user.category || 'man'}
+            players={players}
+          />
+        )}
+
+        {/* Standings Modal */}
+        {showStandingsModal && (
+          <StandingsModal
+            isOpen={showStandingsModal}
+            onClose={() => setShowStandingsModal(false)}
+            players={players}
+          />
         )}
       </div>
     )

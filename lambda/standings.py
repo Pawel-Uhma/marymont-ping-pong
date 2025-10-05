@@ -1,11 +1,13 @@
-# standings.py — recompute group standings from finished group matches
+# standings.py — recompute player standings from finished matches
 # Exposes:
 #   - compute_standings(payload, auth_user) -> HTTP response dict
+#   - get_standings(payload) -> HTTP response dict
 #
 # S3 layout:
-#   <category>/groups.json
-#   <category>/matches_group.json
-#   <category>/standings_group.json
+#   data/{category}/standings.json - contains player stats by playerId
+#   data/{category}/matches.json - all matches
+#   data/accounts.json - player information
+#   data/{category}/groups.json - group information
 
 import os, json, time, boto3
 
@@ -48,80 +50,144 @@ def _now(): return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 # ---- Paths ----
 def _p_groups(cat):        return f"data/{cat}/groups.json"
-def _p_matches_group(cat): return f"data/{cat}/matches_group.json"
-def _p_standings(cat):     return f"data/{cat}/standings_group.json"
+def _p_matches(cat):       return f"data/{cat}/matches.json"
+def _p_standings(cat):     return f"data/{cat}/standings.json"
+def _p_accounts():         return "data/accounts.json"
 
 # ---- Helpers ----
 def _valid_set(a:int,b:int)->bool:
     mx = max(a,b); diff = abs(a-b)
     return mx >= 11 and diff >= 2
 
-def _accumulate(rows, pid, *, sets_for, sets_against, pts_for, pts_against, win=None):
-    r = rows[pid]
-    r["setsFor"]      += sets_for
-    r["setsAgainst"]  += sets_against
-    r["pointsFor"]    += pts_for
-    r["pointsAgainst"]+= pts_against
-    if win is True:  r["wins"]  += 1
-    if win is False: r["losses"]+= 1
+def _get_all_players_in_category(category):
+    """Get all players in a category from accounts.json"""
+    accounts = _get_json(_p_accounts(), {"users": []}).get("users", [])
+    players = []
+    for account in accounts:
+        if (account.get("role") in ("player", "admin") and 
+            account.get("category") == category and 
+            account.get("playerId") is not None):
+            players.append({
+                "playerId": str(account.get("playerId")),
+                "name": account.get("name"),
+                "surname": account.get("surname"),
+                "username": account.get("username")
+            })
+    return players
 
-def _rank(table):
-    # Sort by: wins DESC, setDiff DESC, pointDiff DESC
-    table.sort(key=lambda r: (
-        -r["wins"],
-        - (r["setsFor"] - r["setsAgainst"]),
-        - (r["pointsFor"] - r["pointsAgainst"])
+def _initialize_player_stats(player_id):
+    """Initialize stats for a player"""
+    return {
+        "playerId": player_id,
+        "matchesPlayed": 0,
+        "wins": 0,
+        "losses": 0,
+        "setsWon": 0,
+        "setsLost": 0,
+        "pointsWon": 0,
+        "pointsLost": 0,
+        "setDifference": 0,
+        "pointDifference": 0,
+        "winPercentage": 0.0
+    }
+
+def _update_player_stats(stats, sets_for, sets_against, points_for, points_against, won):
+    """Update player stats after a match"""
+    stats["matchesPlayed"] += 1
+    stats["setsWon"] += sets_for
+    stats["setsLost"] += sets_against
+    stats["pointsWon"] += points_for
+    stats["pointsLost"] += points_against
+    stats["setDifference"] = stats["setsWon"] - stats["setsLost"]
+    stats["pointDifference"] = stats["pointsWon"] - stats["pointsLost"]
+    
+    if won:
+        stats["wins"] += 1
+    else:
+        stats["losses"] += 1
+    
+    if stats["matchesPlayed"] > 0:
+        stats["winPercentage"] = round(stats["wins"] / stats["matchesPlayed"], 3)
+
+def _rank_players(players):
+    """Rank players by wins, set difference, point difference"""
+    players.sort(key=lambda p: (
+        -p["wins"],
+        -p["setDifference"],
+        -p["pointDifference"],
+        -p["winPercentage"]
     ))
-    for i, r in enumerate(table, 1):
-        r["rank"] = i
+    for i, player in enumerate(players, 1):
+        player["rank"] = i
 
 # ---- API ----
 def compute_standings(payload:dict, auth_user:dict):
+    """Compute and save player standings from all finished matches"""
     if not auth_user or auth_user.get("role") != "admin":
         return _resp(403, {"error":"Forbidden"})
     category = (payload or {}).get("category")
     if category not in ("man","woman"):
         return _resp(400, {"error":"category must be man|woman"})
 
-    groups = _get_json(_p_groups(category), {"groups":[]}).get("groups", [])
-    matches = _get_json(_p_matches_group(category), {"matches":[]}).get("matches", [])
+    # Get all players in the category
+    players = _get_all_players_in_category(category)
+    if not players:
+        # No players found, return empty standings
+        standings = {
+            "players": [],
+            "updatedAt": _now(),
+            "version": 1
+        }
+        _put_json(_p_standings(category), standings)
+        return _resp(200, {"standings": standings})
 
-    # Build per-group tables initialized with players
-    out_groups = []
-    by_group = { g["id"]: { pid: {
-        "playerId": pid, "wins":0, "losses":0,
-        "setsFor":0, "setsAgainst":0,
-        "pointsFor":0, "pointsAgainst":0,
-        "rank":0
-    } for pid in g["players"] } for g in groups }
+    # Initialize player stats
+    player_stats = {}
+    for player in players:
+        player_stats[player["playerId"]] = _initialize_player_stats(player["playerId"])
 
-    # Consider only final group matches
-    for m in (mm for mm in matches if mm.get("phase")=="group" and mm.get("status")=="final" and mm.get("groupId")):
-        gmap = by_group.get(m["groupId"])
-        if not gmap:  # unknown group id
+    # Get all finished matches
+    matches = _get_json(_p_matches(category), {"matches":[]}).get("matches", [])
+    finished_matches = [m for m in matches if m.get("status") == "final"]
+
+    # Process each finished match
+    for match in finished_matches:
+        p1_id = str(match.get("p1", ""))
+        p2_id = str(match.get("p2", ""))
+        winner = match.get("winner")
+        
+        # Skip if players not found in our player list
+        if p1_id not in player_stats or p2_id not in player_stats:
             continue
-        p1, p2 = m["p1"], m["p2"]
-        p1s=p2s=p1p=p2p=0
-        for s in m.get("sets", []):
-            a, b = int(s.get("p1",0)), int(s.get("p2",0))
-            p1p += a; p2p += b
-            if _valid_set(a,b):
-                if a>b: p1s+=1
-                else:   p2s+=1
-        _accumulate(gmap, p1, sets_for=p1s, sets_against=p2s, pts_for=p1p, pts_against=p2p,
-                    win=True if m.get("winner")==p1 else (False if m.get("winner")==p2 else None))
-        _accumulate(gmap, p2, sets_for=p2s, sets_against=p1s, pts_for=p2p, pts_against=p1p,
-                    win=True if m.get("winner")==p2 else (False if m.get("winner")==p1 else None))
+        
+        # Calculate sets and points
+        p1_sets = p2_sets = p1_points = p2_points = 0
+        for set_data in match.get("sets", []):
+            p1_score = int(set_data.get("p1", 0))
+            p2_score = int(set_data.get("p2", 0))
+            p1_points += p1_score
+            p2_points += p2_score
+            
+            if _valid_set(p1_score, p2_score):
+                if p1_score > p2_score:
+                    p1_sets += 1
+                else:
+                    p2_sets += 1
+        
+        # Update player stats
+        p1_won = winner == p1_id
+        p2_won = winner == p2_id
+        
+        _update_player_stats(player_stats[p1_id], p1_sets, p2_sets, p1_points, p2_points, p1_won)
+        _update_player_stats(player_stats[p2_id], p2_sets, p1_sets, p2_points, p1_points, p2_won)
 
-    # Emit sorted tables
-    for g in groups:
-        table = list(by_group[g["id"]].values())
-        _rank(table)
-        out_groups.append({ "groupId": g["id"], "table": table })
+    # Convert to list and rank players
+    standings_list = list(player_stats.values())
+    _rank_players(standings_list)
 
+    # Save standings
     standings = {
-        "groups": out_groups,
-        "tiebreakers": ["wins","setDiff","pointDiff","headToHead","random"],
+        "players": standings_list,
         "updatedAt": _now(),
         "version": 1
     }
@@ -129,8 +195,46 @@ def compute_standings(payload:dict, auth_user:dict):
     return _resp(200, {"standings": standings})
     
 def get_standings(payload: dict):
+    """Get standings with player information joined"""
     category = (payload or {}).get("category")
     if category not in ("man","woman"):
         return _resp(400, {"error":"category must be man|woman"})
-    data = _get_json(_p_standings(category), {"groups": [], "tiebreakers": ["wins","setDiff","pointDiff","headToHead","random"]})
-    return _resp(200, data)
+    
+    # Get standings data
+    standings_data = _get_json(_p_standings(category), {"players": [], "updatedAt": _now(), "version": 1})
+    player_stats = standings_data.get("players", [])
+    
+    # Get player information
+    players_info = _get_all_players_in_category(category)
+    players_dict = {p["playerId"]: p for p in players_info}
+    
+    # Get groups information
+    groups_data = _get_json(_p_groups(category), {"groups": []})
+    groups = groups_data.get("groups", [])
+    
+    # Create group lookup
+    player_to_group = {}
+    for group in groups:
+        for player_id in group.get("players", []):
+            player_to_group[player_id] = group.get("id", "Unknown")
+    
+    # Join standings with player info and group info
+    enriched_standings = []
+    for stats in player_stats:
+        player_id = stats.get("playerId")
+        player_info = players_dict.get(player_id, {})
+        
+        enriched_player = {
+            **stats,  # Include all stats
+            "name": player_info.get("name", "Unknown"),
+            "surname": player_info.get("surname", "Unknown"),
+            "username": player_info.get("username", "Unknown"),
+            "group": player_to_group.get(player_id, "No Group")
+        }
+        enriched_standings.append(enriched_player)
+    
+    return _resp(200, {
+        "players": enriched_standings,
+        "updatedAt": standings_data.get("updatedAt"),
+        "version": standings_data.get("version", 1)
+    })

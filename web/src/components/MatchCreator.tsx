@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { dataService } from '../api';
-import type { Player, Category, GroupMatch, EliminationMatch, Group, Match } from '../api/types';
+import type { Player, Category, GroupMatch, EliminationMatch, Match } from '../api/types';
 import { AddMatchModal } from './AddMatchModal';
 import { EditMatchModal } from './EditMatchModal';
 
 interface MatchCreatorProps {
   onMatchesCreated: () => void;
+  onEditScore?: (match: Match) => void;
 }
 
-export function MatchCreator({ onMatchesCreated }: MatchCreatorProps) {
+export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProps) {
   const [selectedCategory, setSelectedCategory] = useState<Category>('man');
   const [groupMatches, setGroupMatches] = useState<GroupMatch[]>([]);
   const [eliminationMatches, setEliminationMatches] = useState<EliminationMatch[]>([]);
@@ -26,6 +27,7 @@ export function MatchCreator({ onMatchesCreated }: MatchCreatorProps) {
   }, [selectedCategory]);
 
   const loadMatches = async () => {
+    console.log('MatchCreator - loadMatches called for category:', selectedCategory);
     try {
       setIsLoading(true);
       setError('');
@@ -35,6 +37,9 @@ export function MatchCreator({ onMatchesCreated }: MatchCreatorProps) {
         dataService.getEliminationMatches(selectedCategory),
         dataService.getPlayers(selectedCategory)
       ]);
+      
+      console.log('MatchCreator - Loaded group matches:', groupMatchesData);
+      console.log('MatchCreator - Loaded elimination matches:', eliminationMatchesData);
       
       setGroupMatches(groupMatchesData);
       setEliminationMatches(eliminationMatchesData);
@@ -54,6 +59,7 @@ export function MatchCreator({ onMatchesCreated }: MatchCreatorProps) {
   };
 
   const handleMatchAdded = () => {
+    console.log('MatchCreator - handleMatchAdded called');
     loadMatches(); // Reload matches after adding
     onMatchesCreated(); // Refresh dashboard
   };
@@ -63,6 +69,12 @@ export function MatchCreator({ onMatchesCreated }: MatchCreatorProps) {
     onMatchesCreated(); // Refresh dashboard
     setShowEditMatchModal(false);
     setSelectedMatch(null);
+  };
+
+  const handleEditScore = (match: Match) => {
+    if (onEditScore) {
+      onEditScore(match);
+    }
   };
 
   const handleEditMatch = (match: Match) => {
@@ -167,9 +179,16 @@ export function MatchCreator({ onMatchesCreated }: MatchCreatorProps) {
                 <button 
                   className="edit-match-btn"
                   onClick={() => handleEditMatch(match)}
-                  title="Edit match"
+                  title="Edit match details"
                 >
-                  ✏️
+                  ✏️ Edit
+                </button>
+                <button 
+                  className="edit-score-btn"
+                  onClick={() => handleEditScore(match)}
+                  title="Edit match score"
+                >
+                  🏓 Score
                 </button>
                 <button 
                   className="delete-match-btn"
@@ -177,7 +196,7 @@ export function MatchCreator({ onMatchesCreated }: MatchCreatorProps) {
                   disabled={isDeleting === match.id}
                   title="Delete match"
                 >
-                  {isDeleting === match.id ? '⏳' : '🗑️'}
+                  {isDeleting === match.id ? '⏳ Deleting...' : '🗑️ Delete'}
                 </button>
               </div>
             </div>
@@ -202,9 +221,16 @@ export function MatchCreator({ onMatchesCreated }: MatchCreatorProps) {
                 <button 
                   className="edit-match-btn"
                   onClick={() => handleEditMatch(match)}
-                  title="Edit match"
+                  title="Edit match details"
                 >
-                  ✏️
+                  ✏️ Edit
+                </button>
+                <button 
+                  className="edit-score-btn"
+                  onClick={() => handleEditScore(match)}
+                  title="Edit match score"
+                >
+                  🏓 Score
                 </button>
                 <button 
                   className="delete-match-btn"
@@ -212,7 +238,7 @@ export function MatchCreator({ onMatchesCreated }: MatchCreatorProps) {
                   disabled={isDeleting === match.id}
                   title="Delete match"
                 >
-                  {isDeleting === match.id ? '⏳' : '🗑️'}
+                  {isDeleting === match.id ? '⏳ Deleting...' : '🗑️ Delete'}
                 </button>
               </div>
             </div>

@@ -95,8 +95,6 @@ def handler(event, context):
 
         # --- Accounts ---
         if action == "accounts.list":
-            if not auth_user:
-                return _resp(401, {"error": "Unauthorized"})
             return auth.list_accounts(payload, auth_user)
 
         if action == "accounts.create":
@@ -130,8 +128,6 @@ def handler(event, context):
             return groups.generate_groups(payload, auth_user)
 
         if action == "groups.create":
-            if not auth_user:
-                return _resp(401, {"error": "Unauthorized"})
             return groups.create_group(payload, auth_user)
 
         # --- Matches ---
@@ -144,8 +140,6 @@ def handler(event, context):
             return matches.create_match(payload, auth_user)
 
         if action == "matches.update":
-            if not auth_user:
-                return _resp(401, {"error": "Unauthorized"})
             return matches.update_match(payload, auth_user)
 
         if action == "matches.delete":

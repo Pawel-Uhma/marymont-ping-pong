@@ -8,32 +8,29 @@ interface AddMatchModalProps {
   onClose: () => void;
 }
 
-interface DraggedPlayer {
-  player: Player;
-  sourceGroup: string;
-  sourceIndex: number;
-}
+// Removed DraggedPlayer interface - no longer needed
 
 interface MatchDraft {
   player1: Player | null;
   player2: Player | null;
   scheduledAt: string;
   status: 'scheduled' | 'in_progress' | 'final';
-  phase: 'group' | 'elim';
-  groupId?: string;
+  type: 'group' | 'elimination';
+  group?: string;
+  round?: number;
 }
 
 export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModalProps) {
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [draggedPlayer, setDraggedPlayer] = useState<DraggedPlayer | null>(null);
+  // Removed draggedPlayer state - no longer needed
   const [matchDraft, setMatchDraft] = useState<MatchDraft>({
     player1: null,
     player2: null,
     scheduledAt: new Date().toISOString().split('T')[0], // Today's date
     status: 'scheduled',
-    phase: 'group',
-    groupId: ''
+    type: 'group',
+    group: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,41 +68,40 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
     }
   };
 
-  // Handle drag start
-  const handleDragStart = (e: React.DragEvent, player: Player, sourceGroup: string, sourceIndex: number) => {
-    setDraggedPlayer({ player, sourceGroup, sourceIndex });
-    e.dataTransfer.effectAllowed = 'move';
+  // Get available players based on match type and group
+  const getAvailablePlayers = (): Player[] => {
+    if (matchDraft.type === 'group' && matchDraft.group) {
+      // For group matches, only show players from the selected group
+      const selectedGroup = groups.find(g => g.id === matchDraft.group);
+      if (selectedGroup) {
+        return allPlayers.filter(player => selectedGroup.players.includes(player.id));
+      }
+      return [];
+    } else {
+      // For elimination matches, show all players
+      return allPlayers;
+    }
   };
 
-  // Handle drag over
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+  // Handle player selection
+  const handlePlayerSelect = (playerSlot: 'player1' | 'player2', playerId: string) => {
+    if (playerId === '') {
+      setMatchDraft(prev => ({
+        ...prev,
+        [playerSlot]: null
+      }));
+    } else {
+      const selectedPlayer = allPlayers.find(p => p.id === playerId);
+      if (selectedPlayer) {
+        setMatchDraft(prev => ({
+          ...prev,
+          [playerSlot]: selectedPlayer
+        }));
+      }
+    }
   };
 
-  // Handle drop on player slot
-  const handleDropOnPlayer = (e: React.DragEvent, playerSlot: 'player1' | 'player2') => {
-    e.preventDefault();
-    
-    if (!draggedPlayer) return;
-
-    const { player } = draggedPlayer;
-    
-    setMatchDraft(prev => ({
-      ...prev,
-      [playerSlot]: player
-    }));
-    
-    setDraggedPlayer(null);
-  };
-
-  // Remove player from match
-  const removePlayerFromMatch = (playerSlot: 'player1' | 'player2') => {
-    setMatchDraft(prev => ({
-      ...prev,
-      [playerSlot]: null
-    }));
-  };
+  // Removed removePlayerFromMatch function - no longer needed
 
   // Handle date change
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,17 +112,19 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
   };
 
   // Handle phase change
-  const handlePhaseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const phase = e.target.value as 'group' | 'elim';
+  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const type = e.target.value as 'group' | 'elimination';
     setMatchDraft(prev => ({
       ...prev,
-      phase,
-      groupId: phase === 'group' ? prev.groupId : undefined
+      type,
+      group: type === 'group' ? prev.group : undefined,
+      round: type === 'elimination' ? prev.round : undefined
     }));
   };
 
   // Save match to database
   const handleSaveMatch = async () => {
+    console.log('AddMatchModal - handleSaveMatch called');
     try {
       setIsSaving(true);
       setError('');
@@ -142,14 +140,14 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
       }
 
       // Validate group match requirements
-      if (matchDraft.phase === 'group') {
-        if (!matchDraft.groupId) {
-          setError('Group ID is required for group matches');
+      if (matchDraft.type === 'group') {
+        if (!matchDraft.group) {
+          setError('Group is required for group matches');
           return;
         }
         
         // Check if both players are in the same group
-        const group = groups.find(g => g.id === matchDraft.groupId);
+        const group = groups.find(g => g.id === matchDraft.group);
         if (group) {
           const player1InGroup = group.players.includes(matchDraft.player1.id);
           const player2InGroup = group.players.includes(matchDraft.player2.id);
@@ -161,31 +159,39 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
         }
       }
       
-      // Create new match based on phase
+      // Validate elimination match requirements
+      if (matchDraft.type === 'elimination') {
+        if (!matchDraft.round) {
+          setError('Round is required for elimination matches');
+          return;
+        }
+      }
+      
+      // Create new match based on type
       let success = false;
       
       // Create match data for API (using player1/player2 field names expected by Lambda)
       const matchData = {
-        id: `match_${Date.now()}`,
         player1: matchDraft.player1.id,
         player2: matchDraft.player2.id,
         winner: null,
         status: matchDraft.status,
         sets: [],
         category: category,
-        phase: matchDraft.phase,
-        groupId: matchDraft.phase === 'group' ? matchDraft.groupId : undefined,
+        type: matchDraft.type,
+        group: matchDraft.type === 'group' ? matchDraft.group : undefined,
+        round: matchDraft.type === 'elimination' ? matchDraft.round : undefined,
         scheduledAt: matchDraft.scheduledAt,
-        advancesTo: matchDraft.phase === 'elim' ? null : undefined
+        advancesTo: matchDraft.type === 'elimination' ? null : undefined
       };
       
-      if (matchDraft.phase === 'group') {
-        success = await dataService.saveGroupMatches(category, [matchData as any]);
-      } else {
-        success = await dataService.saveEliminationMatches(category, [matchData as any]);
-      }
+      // Use the unified match creation endpoint
+      console.log('AddMatchModal - Calling dataService.createMatch with:', matchData);
+      success = await dataService.createMatch(matchData);
+      console.log('AddMatchModal - dataService.createMatch result:', success);
       
       if (success) {
+        console.log('AddMatchModal - Match created successfully, calling onMatchAdded');
         onMatchAdded();
         onClose();
       } else {
@@ -200,12 +206,7 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
   };
 
 
-  // Get players in a group
-  const getPlayersInGroup = (group: Group): Player[] => {
-    return group.players
-      .map(playerId => allPlayers.find(p => p.id === playerId))
-      .filter((player): player is Player => player !== undefined);
-  };
+  // Removed getPlayersInGroup function - no longer needed
 
   if (isLoading) {
     return (
@@ -222,30 +223,30 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
         <div className="match-setup">
           <h4>Match Setup</h4>
           
-          {/* Phase Selector */}
+          {/* Type Selector */}
           <div className="input-group">
-            <label htmlFor="phase" className="input-label">Match Phase *</label>
+            <label htmlFor="type" className="input-label">Match Type *</label>
             <select
-              id="phase"
-              value={matchDraft.phase}
-              onChange={handlePhaseChange}
+              id="type"
+              value={matchDraft.type}
+              onChange={handleTypeChange}
               className="input-field"
               required
               disabled={isSaving}
             >
               <option value="group">Group</option>
-              <option value="elim">Elimination</option>
+              <option value="elimination">Elimination</option>
             </select>
           </div>
 
           {/* Group Selector (only for group matches) */}
-          {matchDraft.phase === 'group' && (
+          {matchDraft.type === 'group' && (
             <div className="input-group">
-              <label htmlFor="groupId" className="input-label">Group *</label>
+              <label htmlFor="group" className="input-label">Group *</label>
               <select
-                id="groupId"
-                value={matchDraft.groupId || ''}
-                onChange={(e) => setMatchDraft(prev => ({ ...prev, groupId: e.target.value }))}
+                id="group"
+                value={matchDraft.group || ''}
+                onChange={(e) => setMatchDraft(prev => ({ ...prev, group: e.target.value }))}
                 className="input-field"
                 required
                 disabled={isSaving}
@@ -257,6 +258,24 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {/* Round Selector (only for elimination matches) */}
+          {matchDraft.type === 'elimination' && (
+            <div className="input-group">
+              <label htmlFor="round" className="input-label">Round *</label>
+              <input
+                id="round"
+                type="number"
+                min="1"
+                value={matchDraft.round || ''}
+                onChange={(e) => setMatchDraft(prev => ({ ...prev, round: parseInt(e.target.value) || undefined }))}
+                className="input-field"
+                required
+                disabled={isSaving}
+                placeholder="Enter round number (1, 2, 3...)"
+              />
             </div>
           )}
 
@@ -278,99 +297,56 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
             </small>
           </div>
 
-          {/* Player Slots */}
-          <div className="match-slots">
-            <div className="slot-container">
+          {/* Player Selection */}
+          <div className="player-selection">
+            <div className="player-slot-container">
               <label className="slot-label">Player 1</label>
-              <div 
-                className={`player-slot ${matchDraft.player1 ? 'filled' : 'empty'}`}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDropOnPlayer(e, 'player1')}
+              <select
+                value={matchDraft.player1?.id || ''}
+                onChange={(e) => handlePlayerSelect('player1', e.target.value)}
+                className="player-select"
               >
-                {matchDraft.player1 ? (
-                  <div className="player-in-slot">
-                    <span className="player-name">{matchDraft.player1.name} {matchDraft.player1.surname}</span>
-                    <button 
-                      className="remove-player-btn"
-                      onClick={() => removePlayerFromMatch('player1')}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ) : (
-                  <div className="empty-slot">
-                    <span>Drop Player 1 here</span>
-                  </div>
-                )}
-              </div>
+                <option value="">Select Player 1</option>
+                {getAvailablePlayers().map(player => (
+                  <option key={player.id} value={player.id}>
+                    {player.name} {player.surname} (#{player.id})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="vs-divider">VS</div>
 
-            <div className="slot-container">
+            <div className="player-slot-container">
               <label className="slot-label">Player 2</label>
-              <div 
-                className={`player-slot ${matchDraft.player2 ? 'filled' : 'empty'}`}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDropOnPlayer(e, 'player2')}
+              <select
+                value={matchDraft.player2?.id || ''}
+                onChange={(e) => handlePlayerSelect('player2', e.target.value)}
+                className="player-select"
               >
-                {matchDraft.player2 ? (
-                  <div className="player-in-slot">
-                    <span className="player-name">{matchDraft.player2.name} {matchDraft.player2.surname}</span>
-                    <button 
-                      className="remove-player-btn"
-                      onClick={() => removePlayerFromMatch('player2')}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ) : (
-                  <div className="empty-slot">
-                    <span>Drop Player 2 here</span>
-                  </div>
-                )}
-              </div>
+                <option value="">Select Player 2</option>
+                {getAvailablePlayers().map(player => (
+                  <option key={player.id} value={player.id}>
+                    {player.name} {player.surname} (#{player.id})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
 
-        {/* Players by Groups */}
-        <div className="players-by-groups">
-          <h4>Players by Groups</h4>
-          <div className="groups-container">
-            {groups.map((group) => {
-              const playersInGroup = getPlayersInGroup(group);
-              return (
-                <div key={group.id} className="group-section">
-                  <h5>Group {group.id.replace('group_', '')}</h5>
-                  <div className="group-players">
-                    {playersInGroup.map((player, index) => (
-                      <div
-                        key={player.id}
-                        className="player-card"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, player, group.id, index)}
-                      >
-                        <span className="player-name">{player.name} {player.surname}</span>
-                        <span className="player-id">#{player.id}</span>
-                      </div>
-                    ))}
-                    {playersInGroup.length === 0 && (
-                      <div className="empty-group">
-                        <p>No players in this group</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            
-            {groups.length === 0 && (
-              <div className="no-groups">
-                <p>No groups found. Please create groups first.</p>
-              </div>
-            )}
-          </div>
+        {/* Available Players Info */}
+        <div className="available-players-info">
+          <h4>Available Players</h4>
+          <p>
+            {matchDraft.type === 'group' 
+              ? `Showing players from selected group (${matchDraft.group || 'none selected'})`
+              : 'Showing all players for elimination match'
+            }
+          </p>
+          <p className="player-count">
+            {getAvailablePlayers().length} player{getAvailablePlayers().length !== 1 ? 's' : ''} available
+          </p>
         </div>
       </div>
 
@@ -392,7 +368,7 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
         <button 
           className="primary-btn"
           onClick={handleSaveMatch}
-          disabled={isSaving || !matchDraft.player1 || !matchDraft.player2 || (matchDraft.phase === 'group' && !matchDraft.groupId)}
+          disabled={isSaving || !matchDraft.player1 || !matchDraft.player2 || (matchDraft.type === 'group' && !matchDraft.group) || (matchDraft.type === 'elimination' && !matchDraft.round)}
         >
           {isSaving ? 'Saving...' : 'Create Match'}
         </button>
