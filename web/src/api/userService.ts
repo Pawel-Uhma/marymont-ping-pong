@@ -96,7 +96,19 @@ class UserService {
   // Create new account (admin only)
   async createAccount(account: Account): Promise<boolean> {
     try {
-      const response = await lambdaService.createAccount(account);
+      if (account.playerId === null) {
+        throw new Error('Player ID is required for account creation');
+      }
+      
+      const response = await lambdaService.createAccount({
+        username: account.username,
+        password: account.password,
+        name: account.name,
+        surname: account.surname,
+        role: account.role,
+        playerId: account.playerId,
+        category: account.category,
+      });
       // Check for success message or account object in response
       return response.message === "Account created successfully" || !!response.account;
     } catch (error) {

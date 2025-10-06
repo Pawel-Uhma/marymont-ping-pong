@@ -15,7 +15,6 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
   const [matches, setMatches] = useState<(GroupMatch | EliminationMatch)[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedMatch, setSelectedMatch] = useState<GroupMatch | EliminationMatch | null>(null);
 
   // Load matches when modal opens
   useEffect(() => {
@@ -94,7 +93,6 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
 
   // Handle edit match
   const handleEditMatch = (match: GroupMatch | EliminationMatch) => {
-    setSelectedMatch(match);
     onMatchEdited(match);
     onClose(); // Close this modal to open the edit score modal
   };

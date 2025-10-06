@@ -4,13 +4,10 @@
 import type { S3Config } from './types';
 
 class S3Service {
-  private config: S3Config;
-  private isDevelopment: boolean;
+
   private baseUrl: string;
 
   constructor(config: S3Config) {
-    this.config = config;
-    this.isDevelopment = import.meta.env.DEV;
     // Direct S3 bucket URL
     this.baseUrl = `https://${config.bucketName}.s3.${config.region}.amazonaws.com`;
   }
