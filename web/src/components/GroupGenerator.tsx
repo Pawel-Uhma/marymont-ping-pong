@@ -51,7 +51,7 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
       
     } catch (error) {
       console.error('Load data error:', error);
-      setError('Failed to load players and groups');
+      setError('Nie udało się załadować graczy i grup');
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +114,7 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
       
     } catch (error) {
       console.error('Reset groups error:', error);
-      setError('Failed to reset groups');
+      setError('Nie udało się zresetować grup');
     } finally {
       setIsSaving(false);
     }
@@ -161,7 +161,7 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
       
     } catch (error) {
       console.error('Save groups error:', error);
-      setError('Failed to save groups');
+      setError('Nie udało się zapisać grup');
     } finally {
       setIsSaving(false);
     }
@@ -169,12 +169,12 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
 
   // Get group options for the combobox
   const getGroupOptions = () => {
-    const options = [{ value: 0, label: 'No Group' }];
+    const options = [{ value: 0, label: 'Brak Grupy' }];
     for (let i = 1; i <= numberOfGroups; i++) {
       const playerCount = Object.values(playerGroupAssignments).filter(id => id === i).length;
       options.push({
         value: i,
-        label: `Group ${i} (${playerCount} players)`
+        label: `Grupa ${i} (${playerCount} graczy)`
       });
     }
     return options;
@@ -221,28 +221,28 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
       {/* Header Controls */}
       <div className="groups-header">
         <div className="category-selector">
-          <label className="category-label">Category:</label>
+          <label className="category-label">Kategoria:</label>
           <div className="category-tabs">
             <button 
               className={`category-tab ${selectedCategory === 'man' ? 'active' : ''}`}
               onClick={() => handleCategoryChange('man')}
               disabled={isSaving}
             >
-              Men
+              Mężczyźni
             </button>
             <button 
               className={`category-tab ${selectedCategory === 'woman' ? 'active' : ''}`}
               onClick={() => handleCategoryChange('woman')}
               disabled={isSaving}
             >
-              Women
+              Kobiety
             </button>
           </div>
         </div>
 
         <div className="groups-controls">
           <div className="group-count-selector">
-            <label htmlFor="groupCount" className="group-count-label">Number of Groups:</label>
+            <label htmlFor="groupCount" className="group-count-label">Liczba Grup:</label>
             <input
               id="groupCount"
               type="number"
@@ -260,19 +260,19 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
             onClick={handleResetAndCreateGroups}
             disabled={isSaving}
           >
-            {isSaving ? 'Resetting...' : 'Reset and Create Groups'}
+            {isSaving ? 'Resetowanie...' : 'Resetuj i Utwórz Grupy'}
           </button>
         </div>
       </div>
 
       {/* Players List */}
       <div className="players-section">
-        <h3>Assign Players to Groups</h3>
+        <h3>Przypisz Graczy do Grup</h3>
         <div className="players-list">
           {players.length === 0 ? (
             <div className="no-players">
-              <p>No players found for {selectedCategory} category</p>
-              <p>Players array length: {players.length}</p>
+              <p>Nie znaleziono graczy dla kategorii {selectedCategory}</p>
+              <p>Liczba graczy: {players.length}</p>
             </div>
           ) : (
             players.map((player) => (
@@ -301,7 +301,7 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
 
       {/* Groups Overview */}
       <div className="groups-overview">
-        <h3>Groups Overview</h3>
+        <h3>Przegląd Grup</h3>
         <div className="groups-grid">
           {Array.from({ length: numberOfGroups }, (_, i) => {
             const groupId = i + 1;
@@ -310,8 +310,8 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
             return (
               <div key={groupId} className="group-card">
                 <div className="group-header">
-                  <h4>Group {groupId}</h4>
-                  <span className="player-count">({playersInGroup.length} players)</span>
+                  <h4>Grupa {groupId}</h4>
+                  <span className="player-count">({playersInGroup.length} graczy)</span>
                 </div>
                 <div className="group-players">
                   {playersInGroup.length > 0 ? (
@@ -323,7 +323,7 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
                     ))
                   ) : (
                     <div className="empty-group">
-                      <span>No players assigned</span>
+                      <span>Brak przypisanych graczy</span>
                     </div>
                   )}
                 </div>
@@ -340,7 +340,7 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
           onClick={handleSaveGroups}
           disabled={isSaving}
         >
-          {isSaving ? 'Saving...' : 'Save Groups'}
+          {isSaving ? 'Zapisywanie...' : 'Zapisz Grupy'}
         </button>
       </div>
     </div>

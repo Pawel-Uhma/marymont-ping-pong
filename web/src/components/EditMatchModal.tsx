@@ -150,19 +150,19 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
       setError('');
       
       if (!matchDraft.player1 || !matchDraft.player2) {
-        setError('Please select both players for the match');
+        setError('Proszę wybrać obu graczy do meczu');
         return;
       }
 
       if (matchDraft.player1.id === matchDraft.player2.id) {
-        setError('A player cannot play against themselves');
+        setError('Gracz nie może grać przeciwko sobie');
         return;
       }
       
       // Validate group match requirements
       if (matchDraft.phase === 'group') {
         if (!matchDraft.groupId) {
-          setError('Group ID is required for group matches');
+          setError('ID Grupy jest wymagane dla meczów grupowych');
           return;
         }
         
@@ -173,7 +173,7 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
           const player2InGroup = group.players.includes(matchDraft.player2.id);
           
           if (!player1InGroup || !player2InGroup) {
-            setError('Both players must be in the same group for group matches');
+            setError('Obaj gracze muszą być w tej samej grupie dla meczów grupowych');
             return;
           }
         }
@@ -199,11 +199,11 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
       if (success) {
         onMatchUpdated();
       } else {
-        setError('Failed to update match');
+        setError('Nie udało się zaktualizować meczu');
       }
     } catch (error) {
       console.error('Update match error:', error);
-      setError('An error occurred while updating the match');
+      setError('Wystąpił błąd podczas aktualizacji meczu');
     } finally {
       setIsSaving(false);
     }
@@ -215,7 +215,7 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
   if (isLoading) {
     return (
       <div className="add-match-loading">
-        <div className="loading">Loading players and groups...</div>
+        <div className="loading">Ładowanie graczy i grup...</div>
       </div>
     );
   }
@@ -225,11 +225,11 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
       <div className="edit-match-modal-content">
         {/* Match Setup */}
         <div className="match-setup">
-          <h4>Match Setup</h4>
+          <h4>Konfiguracja Meczu</h4>
           
           {/* Phase Selector */}
           <div className="input-group">
-            <label htmlFor="phase" className="input-label">Match Phase *</label>
+            <label htmlFor="phase" className="input-label">Faza Meczu *</label>
             <select
               id="phase"
               value={matchDraft.phase}
@@ -238,15 +238,15 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
               required
               disabled={isSaving}
             >
-              <option value="group">Group</option>
-              <option value="elim">Elimination</option>
+              <option value="group">Grupa</option>
+              <option value="elim">Eliminacje</option>
             </select>
           </div>
 
           {/* Group Selector (only for group matches) */}
           {matchDraft.phase === 'group' && (
             <div className="input-group">
-              <label htmlFor="groupId" className="input-label">Group *</label>
+              <label htmlFor="groupId" className="input-label">Grupa *</label>
               <select
                 id="groupId"
                 value={matchDraft.groupId || ''}
@@ -255,10 +255,10 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
                 required
                 disabled={isSaving}
               >
-                <option value="">Select Group</option>
+                <option value="">Wybierz Grupę</option>
                 {groups.map(group => (
                   <option key={group.id} value={group.id}>
-                    Group {group.id.replace('group_', '')}
+                    Grupa {group.id.replace('group_', '')}
                   </option>
                 ))}
               </select>
@@ -267,7 +267,7 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
 
           {/* Date Picker */}
           <div className="input-group">
-            <label htmlFor="scheduledAt" className="input-label">Match Date *</label>
+            <label htmlFor="scheduledAt" className="input-label">Data Meczu *</label>
             <input
               type="date"
               id="scheduledAt"
@@ -282,7 +282,7 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
 
           {/* Status Selector */}
           <div className="input-group">
-            <label htmlFor="status" className="input-label">Match Status *</label>
+            <label htmlFor="status" className="input-label">Status Meczu *</label>
             <select
               id="status"
               value={matchDraft.status}
@@ -291,22 +291,22 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
               required
               disabled={isSaving}
             >
-              <option value="scheduled">Scheduled</option>
-              <option value="in_progress">In Progress</option>
-              <option value="final">Final</option>
+              <option value="scheduled">Zaplanowany</option>
+              <option value="in_progress">W trakcie</option>
+              <option value="final">Zakończony</option>
             </select>
           </div>
 
           {/* Player Selection */}
           <div className="player-selection">
             <div className="player-slot-container">
-              <label className="slot-label">Player 1</label>
+              <label className="slot-label">Gracz 1</label>
               <select
                 value={matchDraft.player1?.id || ''}
                 onChange={(e) => handlePlayerSelect('player1', e.target.value)}
                 className="player-select"
               >
-                <option value="">Select Player 1</option>
+                <option value="">Wybierz Gracza 1</option>
                 {getAvailablePlayers().map(player => (
                   <option key={player.id} value={player.id}>
                     {player.name} {player.surname} (#{player.id})
@@ -318,13 +318,13 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
             <div className="vs-divider">VS</div>
 
             <div className="player-slot-container">
-              <label className="slot-label">Player 2</label>
+              <label className="slot-label">Gracz 2</label>
               <select
                 value={matchDraft.player2?.id || ''}
                 onChange={(e) => handlePlayerSelect('player2', e.target.value)}
                 className="player-select"
               >
-                <option value="">Select Player 2</option>
+                <option value="">Wybierz Gracza 2</option>
                 {getAvailablePlayers().map(player => (
                   <option key={player.id} value={player.id}>
                     {player.name} {player.surname} (#{player.id})
@@ -337,15 +337,15 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
 
         {/* Available Players Info */}
         <div className="available-players-info">
-          <h4>Available Players</h4>
+          <h4>Dostępni Gracze</h4>
           <p>
             {matchDraft.phase === 'group' 
-              ? `Showing players from selected group (${matchDraft.groupId || 'none selected'})`
-              : 'Showing all players for elimination match'
+              ? `Pokazywanie graczy z wybranej grupy (${matchDraft.groupId || 'brak wybranej'})`
+              : 'Pokazywanie wszystkich graczy dla meczu eliminacyjnego'
             }
           </p>
           <p className="player-count">
-            {getAvailablePlayers().length} player{getAvailablePlayers().length !== 1 ? 's' : ''} available
+            {getAvailablePlayers().length} gracz{getAvailablePlayers().length !== 1 ? 'y' : ''} dostępn{getAvailablePlayers().length !== 1 ? 'i' : 'y'}
           </p>
         </div>
       </div>
@@ -363,14 +363,14 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
           onClick={onClose}
           disabled={isSaving}
         >
-          Cancel
+          Anuluj
         </button>
         <button 
           className="primary-btn"
           onClick={handleSaveMatch}
           disabled={isSaving || !matchDraft.player1 || !matchDraft.player2}
         >
-          {isSaving ? 'Saving...' : 'Update Match'}
+          {isSaving ? 'Zapisywanie...' : 'Zaktualizuj Mecz'}
         </button>
       </div>
     </div>

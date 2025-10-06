@@ -45,7 +45,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
       );
 
       if (usernameExists) {
-        setError('Username already exists');
+        setError('Nazwa użytkownika już istnieje');
         setIsLoading(false);
         return;
       }
@@ -57,7 +57,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
       );
 
       if (playerExists) {
-        setError('Player with this name already exists');
+        setError('Gracz o tym imieniu już istnieje');
         setIsLoading(false);
         return;
       }
@@ -79,7 +79,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
       });
 
       if (!accountSuccess) {
-        setError('Failed to create account');
+        setError('Nie udało się utworzyć konta');
         setIsLoading(false);
         return;
       }
@@ -90,7 +90,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
       onClose();
     } catch (error) {
       console.error('Add player error:', error);
-      setError('An error occurred while adding the player');
+      setError('Wystąpił błąd podczas dodawania gracza');
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +110,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Add New Player</h2>
+          <h2>Dodaj Nowego Gracza</h2>
           <button className="modal-close" onClick={handleClose} disabled={isLoading}>
             ×
           </button>
@@ -118,7 +118,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="input-group">
-            <label htmlFor="category" className="input-label">Category *</label>
+            <label htmlFor="category" className="input-label">Kategoria *</label>
             <select
               id="category"
               name="category"
@@ -128,13 +128,13 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
               required
               disabled={isLoading}
             >
-              <option value="man">Men</option>
-              <option value="woman">Women</option>
+              <option value="man">Mężczyźni</option>
+              <option value="woman">Kobiety</option>
             </select>
           </div>
 
           <div className="input-group">
-            <label htmlFor="username" className="input-label">Username *</label>
+            <label htmlFor="username" className="input-label">Nazwa użytkownika *</label>
             <input
               type="text"
               id="username"
@@ -142,14 +142,14 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
               value={formData.username}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="Enter username"
+              placeholder="Wprowadź nazwę użytkownika"
               required
               disabled={isLoading}
             />
           </div>
 
           <div className="input-group">
-            <label htmlFor="password" className="input-label">Password *</label>
+            <label htmlFor="password" className="input-label">Hasło *</label>
             <input
               type="password"
               id="password"
@@ -157,14 +157,14 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
               value={formData.password}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="Enter password"
+              placeholder="Wprowadź hasło"
               required
               disabled={isLoading}
             />
           </div>
 
           <div className="input-group">
-            <label htmlFor="name" className="input-label">First Name *</label>
+            <label htmlFor="name" className="input-label">Imię *</label>
             <input
               type="text"
               id="name"
@@ -172,14 +172,14 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
               value={formData.name}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="Enter first name"
+              placeholder="Wprowadź imię"
               required
               disabled={isLoading}
             />
           </div>
 
           <div className="input-group">
-            <label htmlFor="surname" className="input-label">Last Name *</label>
+            <label htmlFor="surname" className="input-label">Nazwisko *</label>
             <input
               type="text"
               id="surname"
@@ -187,14 +187,14 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
               value={formData.surname}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="Enter last name"
+              placeholder="Wprowadź nazwisko"
               required
               disabled={isLoading}
             />
           </div>
 
           <div className="input-group">
-            <label htmlFor="playerId" className="input-label">Player ID</label>
+            <label htmlFor="playerId" className="input-label">ID Gracza</label>
             <input
               type="text"
               id="playerId"
@@ -202,11 +202,11 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
               value={formData.playerId}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="Enter custom player ID (optional)"
+              placeholder="Wprowadź niestandardowe ID gracza (opcjonalne)"
               disabled={isLoading}
             />
             <small className="input-help">
-              Leave empty to auto-generate a player ID
+              Pozostaw puste, aby automatycznie wygenerować ID gracza
             </small>
           </div>
 
@@ -219,14 +219,14 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
               className="cancel-btn"
               disabled={isLoading}
             >
-              Cancel
+              Anuluj
             </button>
             <button
               type="submit"
               className="submit-btn"
               disabled={isLoading}
             >
-              {isLoading ? 'Adding...' : 'Add Player'}
+              {isLoading ? 'Dodawanie...' : 'Dodaj Gracza'}
             </button>
           </div>
         </form>

@@ -224,17 +224,17 @@ function App() {
     console.log('getPlayerName called with playerId:', playerId, 'players array:', players)
     const player = players.find(p => p.id === playerId)
     console.log('Found player:', player)
-    return player ? `${player.name} ${player.surname}` : 'Unknown Player'
+    return player ? `${player.name} ${player.surname}` : 'Nieznany Gracz'
   }
 
   const getMatchStatus = (match: GroupMatch | EliminationMatch): string => {
     if (match.status === 'final') {
-      return match.winner ? `Won by ${getPlayerName(match.winner)}` : 'Completed'
+      return match.winner ? `Wygrana przez ${getPlayerName(match.winner)}` : 'Zakończony'
     }
     if (match.status === 'in_progress') {
-      return 'In Progress'
+      return 'W trakcie'
     }
-    return 'Scheduled'
+    return 'Zaplanowany'
   }
 
   const getSetScores = (match: GroupMatch | EliminationMatch): string[] => {
@@ -257,11 +257,11 @@ function App() {
               <div className="user-info">
                 <span className="username">{user?.username}</span>
                 <span className={`role-badge ${user?.role === 'admin' ? 'admin' : 'player'}`}>
-                  {user?.role === 'admin' ? 'Admin' : 'Player'}
+                  {user?.role === 'admin' ? 'Administrator' : 'Gracz'}
                 </span>
               </div>
               <button onClick={handleLogout} className="logout-btn">
-                Logout
+                Wyloguj
               </button>
             </div>
           </div>
@@ -272,7 +272,7 @@ function App() {
           <div className="top-row">
             <div className="next-match-card">
               <div className="card-header">
-                <h3>Your Next Match</h3>
+                <h3>Twój Następny Mecz</h3>
                 {nextMatch?.scheduledAt && (
                   <span className="match-time">
                     {new Date(nextMatch.scheduledAt).toLocaleDateString()}, {new Date(nextMatch.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -302,56 +302,56 @@ function App() {
                       className="edit-score-btn"
                       onClick={() => handleEditScore(nextMatch)}
                     >
-                      Edit Score
+                      Edytuj Wynik
                     </button>
                   </>
                 ) : (
                   <div className="no-match">
-                    <p>No upcoming matches</p>
+                    <p>Brak nadchodzących meczów</p>
                   </div>
                 )}
               </div>
             </div>
             
             <div className="quick-actions">
-              <h4>Quick Actions</h4>
+              <h4>Szybkie Akcje</h4>
               <div className="action-buttons">
                 <button 
                   className="action-btn yellow"
                   onClick={handleMyMatches}
                 >
-                  My Matches
+                  Moje Mecze
                 </button>
                 <button 
                   className="action-btn blue"
                   onClick={handleStandings}
                 >
-                  Standings
+                  Klasyfikacja
                 </button>
               </div>
             </div>
             
             {user?.role === 'admin' && (
               <div className="admin-actions">
-                <h4>Admin Actions</h4>
+                <h4>Akcje Administratora</h4>
                 <div className="action-buttons">
                   <button 
                     className="action-btn black"
                     onClick={() => setShowGroupGenerator(true)}
                   >
-                    Groups
+                    Grupy
                   </button>
                   <button 
                     className="action-btn blue"
                     onClick={() => setShowMatchCreator(true)}
                   >
-                    Matches
+                    Mecze
                   </button>
                   <button 
                     className="action-btn red"
                     onClick={() => setShowAccountManagement(true)}
                   >
-                    Manage Accounts
+                    Zarządzaj Kontami
                   </button>
                 </div>
               </div>
@@ -362,7 +362,7 @@ function App() {
           <div className="middle-section">
             <div className="upcoming-matches">
               <div className="section-header">
-                <h3>Upcoming Matches</h3>
+                <h3>Nadchodzące Mecze</h3>
               </div>
               <div className="matches-list">
                 {upcomingMatches.length > 0 ? (
@@ -381,14 +381,14 @@ function App() {
                   ))
                 ) : (
                   <div className="no-matches">
-                    <p>No upcoming matches scheduled</p>
+                    <p>Brak zaplanowanych meczów</p>
                   </div>
                 )}
               </div>
             </div>
 
             <div className="my-matches">
-              <h3>My Matches</h3>
+              <h3>Moje Mecze</h3>
               <div className="matches-list">
                 {myMatches.length > 0 ? (
                   myMatches.map((match) => (
@@ -406,7 +406,7 @@ function App() {
                   ))
                 ) : (
                   <div className="no-matches">
-                    <p>No matches found</p>
+                    <p>Nie znaleziono meczów</p>
                   </div>
                 )}
               </div>
@@ -417,19 +417,19 @@ function App() {
           <div className="bottom-section">
             <div className="group-standings">
               <div className="section-header">
-                <h3>Group Standings</h3>
+                <h3>Klasyfikacja Grup</h3>
                 <div className="tabs">
                   <button 
                     className={`tab ${standingsCategory === 'man' ? 'active' : ''}`}
                     onClick={() => handleStandingsCategoryChange('man')}
                   >
-                    Men
+                    Mężczyźni
                   </button>
                   <button 
                     className={`tab ${standingsCategory === 'woman' ? 'active' : ''}`}
                     onClick={() => handleStandingsCategoryChange('woman')}
                   >
-                    Women
+                    Kobiety
                   </button>
                 </div>
                 {standings.length > 0 && (
@@ -440,7 +440,7 @@ function App() {
                         className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
                         onClick={() => setSelectedGroupId(group.groupId)}
                       >
-                        Group {group.groupId}
+                        Grupa {group.groupId}
                       </button>
                     ))}
                   </div>
@@ -452,15 +452,15 @@ function App() {
                     const selectedGroup = standings.find(group => group.groupId === selectedGroupId);
                     return selectedGroup ? (
                       <div key={selectedGroup.groupId} className="group-standings-table">
-                        <h4>Group {selectedGroup.groupId}</h4>
+                        <h4>Grupa {selectedGroup.groupId}</h4>
                         <table>
                           <thead>
                             <tr>
-                              <th>Rank</th>
-                              <th>Player</th>
-                              <th>W-L</th>
-                              <th>Sets +/-</th>
-                              <th>Points +/-</th>
+                              <th>Miejsce</th>
+                              <th>Gracz</th>
+                              <th>W-P</th>
+                              <th>Sety +/-</th>
+                              <th>Punkty +/-</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -480,14 +480,14 @@ function App() {
                   })()
                 ) : (
                   <div className="no-standings">
-                    <p>No standings available</p>
+                    <p>Brak dostępnej klasyfikacji</p>
                   </div>
                 )}
               </div>
             </div>
 
             <div className="bracket-preview">
-              <h3>Bracket Preview</h3>
+              <h3>Podgląd Drabinki</h3>
               <div className="bracket">
                 {bracket ? (
                   bracket.rounds.map((round: any, roundIndex: number) => (
@@ -506,7 +506,7 @@ function App() {
                   ))
                 ) : (
                   <div className="no-bracket">
-                    <p>No bracket available</p>
+                    <p>Brak dostępnej drabinki</p>
                   </div>
                 )}
               </div>
@@ -527,7 +527,7 @@ function App() {
           <div className="modal-overlay" onClick={() => setShowAccountManagement(false)}>
             <div className="modal-content account-management-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Account Management</h2>
+                <h2>Zarządzanie Kontami</h2>
                 <button 
                   className="modal-close" 
                   onClick={() => setShowAccountManagement(false)}
@@ -547,7 +547,7 @@ function App() {
           <div className="modal-overlay" onClick={() => setShowGroupGenerator(false)}>
             <div className="modal-content group-generator-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Groups</h2>
+                <h2>Grupy</h2>
                 <button 
                   className="modal-close" 
                   onClick={() => setShowGroupGenerator(false)}
@@ -569,7 +569,7 @@ function App() {
           <div className="modal-overlay" onClick={() => setShowMatchCreator(false)}>
             <div className="modal-content match-creator-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Matches</h2>
+                <h2>Mecze</h2>
                 <button 
                   className="modal-close" 
                   onClick={() => setShowMatchCreator(false)}
@@ -595,6 +595,7 @@ function App() {
             onScoreUpdated={handleScoreUpdated}
             match={selectedMatchForScore}
             players={players}
+            category={user?.category}
           />
         )}
 
@@ -629,12 +630,12 @@ function App() {
         <div className="login-card">
           <div className="login-header">
             <h1 className="login-title">Marymont Ping Pong</h1>
-            <p className="login-subtitle">Sign in to your account</p>
+            <p className="login-subtitle">Zaloguj się do swojego konta</p>
           </div>
           
           <form onSubmit={handleLogin} className="login-form">
             <div className="input-group">
-              <label htmlFor="username" className="input-label">Username</label>
+              <label htmlFor="username" className="input-label">Nazwa użytkownika</label>
               <input
                 type="text"
                 id="username"
@@ -642,14 +643,14 @@ function App() {
                 value={credentials.username}
                 onChange={handleInputChange}
                 className="input-field"
-                placeholder="Enter your username"
+                placeholder="Wprowadź nazwę użytkownika"
                 required
                 disabled={isLoading}
               />
             </div>
             
             <div className="input-group">
-              <label htmlFor="password" className="input-label">Password</label>
+              <label htmlFor="password" className="input-label">Hasło</label>
               <input
                 type="password"
                 id="password"
@@ -657,7 +658,7 @@ function App() {
                 value={credentials.password}
                 onChange={handleInputChange}
                 className="input-field"
-                placeholder="Enter your password"
+                placeholder="Wprowadź hasło"
                 required
                 disabled={isLoading}
               />
@@ -670,13 +671,13 @@ function App() {
               className="login-btn"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing In...' : 'Sign In'}
+              {isLoading ? 'Logowanie...' : 'Zaloguj'}
         </button>
           </form>
           
           <div className="login-footer">
             <p className="demo-credentials">
-              Contact admin for account access
+              Skontaktuj się z administratorem w celu dostępu do konta
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { dataService } from '../api';
-import type { GroupMatch, EliminationMatch, Player } from '../api/types';
+import type { GroupMatch, EliminationMatch, Player, Category } from '../api/types';
 
 interface EditScoreModalProps {
   isOpen: boolean;
@@ -8,6 +8,7 @@ interface EditScoreModalProps {
   onScoreUpdated: () => void;
   match: GroupMatch | EliminationMatch;
   players: Player[];
+  category?: Category; // Add optional category prop
 }
 
 interface SetScore {
@@ -15,7 +16,7 @@ interface SetScore {
   p2: number;
 }
 
-export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players }: EditScoreModalProps) {
+export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players, category }: EditScoreModalProps) {
   const [scores, setScores] = useState<SetScore[]>([
     { p1: 0, p2: 0 },
     { p1: 0, p2: 0 },
@@ -44,7 +45,7 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
   // Get player names
   const getPlayerName = (playerId: string): string => {
     const player = players.find(p => p.id === playerId);
-    return player ? `${player.name} ${player.surname}` : 'Unknown Player';
+    return player ? `${player.name} ${player.surname}` : 'Nieznany Gracz';
   };
 
   // Validate set score
@@ -113,6 +114,32 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
     setMatchStatus(newStatus);
   };
 
+  // Determine match category
+  const getMatchCategory = (): Category => {
+    // If category is explicitly passed, use it
+    if (category) {
+      return category;
+    }
+    
+    // Otherwise, determine from players
+    const player1 = players.find(p => p.id === match.p1);
+    const player2 = players.find(p => p.id === match.p2);
+    
+    if (player1) {
+      return player1.category;
+    }
+    if (player2) {
+      return player2.category;
+    }
+    
+    // Fallback to 'man' if we can't determine
+    console.warn('Could not determine match category, defaulting to man');
+    return 'man';
+  };
+
+  const matchCategory = getMatchCategory();
+  console.log('EditScoreModal - Determined match category:', matchCategory, 'for match:', match.id);
+
   // Handle save
   const handleSave = async () => {
     try {
@@ -125,7 +152,7 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
         // Check if this is a played set (at least one player scored)
         if (score.p1 > 0 || score.p2 > 0) {
           if (!isValidSetScore(score.p1, score.p2)) {
-            setError(`Set ${i + 1} has an invalid score. Scores must be at least 11 points with a 2-point difference.`);
+            setError(`Set ${i + 1} ma nieprawidłowy wynik. Wyniki muszą wynosić co najmniej 11 punktów z różnicą 2 punktów.`);
             return;
           }
         }
@@ -143,7 +170,7 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
         winner: winner,
         status: finalStatus,
         sets: scores,
-        category: match.phase === 'group' ? 'man' : 'woman', // This might need to be determined differently
+        category: matchCategory,
         phase: match.phase,
         groupId: match.phase === 'group' ? (match as GroupMatch).groupId : undefined,
         scheduledAt: match.scheduledAt,
@@ -157,11 +184,11 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
         onScoreUpdated();
         onClose();
       } else {
-        setError('Failed to update match score');
+        setError('Nie udało się zaktualizować wyniku meczu');
       }
     } catch (error) {
       console.error('Update score error:', error);
-      setError('An error occurred while updating the score');
+      setError('Wystąpił błąd podczas aktualizacji wyniku');
     } finally {
       setIsLoading(false);
     }
@@ -186,7 +213,7 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content edit-score-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Edit Match Score</h2>
+          <h2>Edytuj Wynik Meczu</h2>
           <button className="modal-close" onClick={handleClose} disabled={isLoading}>
             ×
           </button>
@@ -209,14 +236,14 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
             
             {matchComplete && winner && (
               <div className="match-winner">
-                🏆 Winner: {winner === match.p1 ? p1Name : p2Name}
+                🏆 Zwycięzca: {winner === match.p1 ? p1Name : p2Name}
               </div>
             )}
           </div>
 
           {/* Status Selector */}
           <div className="input-group">
-            <label htmlFor="status" className="input-label">Match Status</label>
+            <label htmlFor="status" className="input-label">Status Meczu</label>
             <select
               id="status"
               value={matchStatus}
@@ -224,15 +251,15 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
               className="input-field"
               disabled={isLoading}
             >
-              <option value="scheduled">Scheduled</option>
-              <option value="in_progress">In Progress</option>
-              <option value="final">Final</option>
+              <option value="scheduled">Zaplanowany</option>
+              <option value="in_progress">W trakcie</option>
+              <option value="final">Zakończony</option>
             </select>
           </div>
 
           {/* Sets Score Input */}
           <div className="sets-scoring">
-            <h3>Set Scores</h3>
+            <h3>Wyniki Setów</h3>
             <div className="sets-container">
               {scores.map((score, index) => (
                 <div key={index} className="set-input">
@@ -267,12 +294,12 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
                   <div className="set-status">
                     {(score.p1 > 0 || score.p2 > 0) ? (
                       isValidSetScore(score.p1, score.p2) ? (
-                        <span className="set-valid">✓ Valid</span>
+                        <span className="set-valid">✓ Prawidłowy</span>
                       ) : (
-                        <span className="set-invalid">✗ Invalid</span>
+                        <span className="set-invalid">✗ Nieprawidłowy</span>
                       )
                     ) : (
-                      <span className="set-empty">Empty</span>
+                      <span className="set-empty">Pusty</span>
                     )}
                   </div>
                 </div>
@@ -282,18 +309,18 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
 
           {/* Match Summary */}
           <div className="match-summary">
-            <h4>Match Summary</h4>
+            <h4>Podsumowanie Meczu</h4>
             <div className="summary-stats">
               <div className="stat">
-                <span className="stat-label">Completed Sets:</span>
+                <span className="stat-label">Ukończone Sety:</span>
                 <span className="stat-value">
                   {scores.filter(s => isValidSetScore(s.p1, s.p2) && (s.p1 > 0 || s.p2 > 0)).length}/5
                 </span>
               </div>
               <div className="stat">
-                <span className="stat-label">Match Status:</span>
+                <span className="stat-label">Status Meczu:</span>
                 <span className={`stat-value ${matchComplete ? 'complete' : 'incomplete'}`}>
-                  {matchComplete ? 'Complete' : 'Incomplete'}
+                  {matchComplete ? 'Kompletny' : 'Niekompletny'}
                 </span>
               </div>
             </div>
@@ -314,7 +341,7 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
             className="secondary-btn"
             disabled={isLoading}
           >
-            Cancel
+            Anuluj
           </button>
           <button
             type="button"
@@ -322,7 +349,7 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
             className="primary-btn"
             disabled={isLoading}
           >
-            {isLoading ? 'Saving...' : 'Save Score'}
+            {isLoading ? 'Zapisywanie...' : 'Zapisz Wynik'}
           </button>
         </div>
       </div>

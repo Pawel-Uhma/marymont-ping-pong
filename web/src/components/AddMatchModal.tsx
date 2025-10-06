@@ -130,19 +130,19 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
       setError('');
       
       if (!matchDraft.player1 || !matchDraft.player2) {
-        setError('Please select both players for the match');
+        setError('Proszę wybrać obu graczy do meczu');
         return;
       }
 
       if (matchDraft.player1.id === matchDraft.player2.id) {
-        setError('A player cannot play against themselves');
+        setError('Gracz nie może grać przeciwko sobie');
         return;
       }
 
       // Validate group match requirements
       if (matchDraft.type === 'group') {
         if (!matchDraft.group) {
-          setError('Group is required for group matches');
+          setError('Grupa jest wymagana dla meczów grupowych');
           return;
         }
         
@@ -153,7 +153,7 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
           const player2InGroup = group.players.includes(matchDraft.player2.id);
           
           if (!player1InGroup || !player2InGroup) {
-            setError('Both players must be in the same group for group matches');
+            setError('Obaj gracze muszą być w tej samej grupie dla meczów grupowych');
             return;
           }
         }
@@ -162,7 +162,7 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
       // Validate elimination match requirements
       if (matchDraft.type === 'elimination') {
         if (!matchDraft.round) {
-          setError('Round is required for elimination matches');
+          setError('Runda jest wymagana dla meczów eliminacyjnych');
           return;
         }
       }
@@ -195,11 +195,11 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
         onMatchAdded();
         onClose();
       } else {
-        setError('Failed to save match');
+        setError('Nie udało się zapisać meczu');
       }
     } catch (error) {
       console.error('Save match error:', error);
-      setError('An error occurred while saving the match');
+      setError('Wystąpił błąd podczas zapisywania meczu');
     } finally {
       setIsSaving(false);
     }
@@ -211,7 +211,7 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
   if (isLoading) {
     return (
       <div className="add-match-loading">
-        <div className="loading">Loading players and groups...</div>
+        <div className="loading">Ładowanie graczy i grup...</div>
       </div>
     );
   }
@@ -221,11 +221,11 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
       <div className="add-match-content">
         {/* Match Setup */}
         <div className="match-setup">
-          <h4>Match Setup</h4>
+          <h4>Konfiguracja Meczu</h4>
           
           {/* Type Selector */}
           <div className="input-group">
-            <label htmlFor="type" className="input-label">Match Type *</label>
+            <label htmlFor="type" className="input-label">Typ Meczu *</label>
             <select
               id="type"
               value={matchDraft.type}
@@ -234,15 +234,15 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
               required
               disabled={isSaving}
             >
-              <option value="group">Group</option>
-              <option value="elimination">Elimination</option>
+              <option value="group">Grupa</option>
+              <option value="elimination">Eliminacje</option>
             </select>
           </div>
 
           {/* Group Selector (only for group matches) */}
           {matchDraft.type === 'group' && (
             <div className="input-group">
-              <label htmlFor="group" className="input-label">Group *</label>
+              <label htmlFor="group" className="input-label">Grupa *</label>
               <select
                 id="group"
                 value={matchDraft.group || ''}
@@ -251,10 +251,10 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
                 required
                 disabled={isSaving}
               >
-                <option value="">Select Group</option>
+                <option value="">Wybierz Grupę</option>
                 {groups.map(group => (
                   <option key={group.id} value={group.id}>
-                    Group {group.id.replace('group_', '')}
+                    Grupa {group.id.replace('group_', '')}
                   </option>
                 ))}
               </select>
@@ -264,7 +264,7 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
           {/* Round Selector (only for elimination matches) */}
           {matchDraft.type === 'elimination' && (
             <div className="input-group">
-              <label htmlFor="round" className="input-label">Round *</label>
+              <label htmlFor="round" className="input-label">Runda *</label>
               <input
                 id="round"
                 type="number"
@@ -274,14 +274,14 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
                 className="input-field"
                 required
                 disabled={isSaving}
-                placeholder="Enter round number (1, 2, 3...)"
+                placeholder="Wprowadź numer rundy (1, 2, 3...)"
               />
             </div>
           )}
 
           {/* Date Picker */}
           <div className="input-group">
-            <label htmlFor="scheduledAt" className="input-label">Match Date *</label>
+            <label htmlFor="scheduledAt" className="input-label">Data Meczu *</label>
             <input
               type="date"
               id="scheduledAt"
@@ -293,20 +293,20 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
               placeholder="DD/MM/YYYY"
             />
             <small className="input-help">
-              Scheduled date for the match (DD/MM/YYYY format)
+              Zaplanowana data meczu (format DD/MM/YYYY)
             </small>
           </div>
 
           {/* Player Selection */}
           <div className="player-selection">
             <div className="player-slot-container">
-              <label className="slot-label">Player 1</label>
+              <label className="slot-label">Gracz 1</label>
               <select
                 value={matchDraft.player1?.id || ''}
                 onChange={(e) => handlePlayerSelect('player1', e.target.value)}
                 className="player-select"
               >
-                <option value="">Select Player 1</option>
+                <option value="">Wybierz Gracza 1</option>
                 {getAvailablePlayers().map(player => (
                   <option key={player.id} value={player.id}>
                     {player.name} {player.surname} (#{player.id})
@@ -318,13 +318,13 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
             <div className="vs-divider">VS</div>
 
             <div className="player-slot-container">
-              <label className="slot-label">Player 2</label>
+              <label className="slot-label">Gracz 2</label>
               <select
                 value={matchDraft.player2?.id || ''}
                 onChange={(e) => handlePlayerSelect('player2', e.target.value)}
                 className="player-select"
               >
-                <option value="">Select Player 2</option>
+                <option value="">Wybierz Gracza 2</option>
                 {getAvailablePlayers().map(player => (
                   <option key={player.id} value={player.id}>
                     {player.name} {player.surname} (#{player.id})
@@ -337,15 +337,15 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
 
         {/* Available Players Info */}
         <div className="available-players-info">
-          <h4>Available Players</h4>
+          <h4>Dostępni Gracze</h4>
           <p>
             {matchDraft.type === 'group' 
-              ? `Showing players from selected group (${matchDraft.group || 'none selected'})`
-              : 'Showing all players for elimination match'
+              ? `Pokazywanie graczy z wybranej grupy (${matchDraft.group || 'brak wybranej'})`
+              : 'Pokazywanie wszystkich graczy dla meczu eliminacyjnego'
             }
           </p>
           <p className="player-count">
-            {getAvailablePlayers().length} player{getAvailablePlayers().length !== 1 ? 's' : ''} available
+            {getAvailablePlayers().length} gracz{getAvailablePlayers().length !== 1 ? 'y' : ''} dostępn{getAvailablePlayers().length !== 1 ? 'i' : 'y'}
           </p>
         </div>
       </div>
@@ -363,14 +363,14 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
           onClick={onClose}
           disabled={isSaving}
         >
-          Cancel
+          Anuluj
         </button>
         <button 
           className="primary-btn"
           onClick={handleSaveMatch}
           disabled={isSaving || !matchDraft.player1 || !matchDraft.player2 || (matchDraft.type === 'group' && !matchDraft.group) || (matchDraft.type === 'elimination' && !matchDraft.round)}
         >
-          {isSaving ? 'Saving...' : 'Create Match'}
+          {isSaving ? 'Zapisywanie...' : 'Utwórz Mecz'}
         </button>
       </div>
     </div>

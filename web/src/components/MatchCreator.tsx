@@ -46,7 +46,7 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
       setAllPlayers(playersData);
     } catch (error) {
       console.error('Load matches error:', error);
-      setError('Failed to load matches');
+      setError('Nie udało się załadować meczów');
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +55,7 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
   // Get player name by ID
   const getPlayerName = (playerId: string): string => {
     const player = allPlayers.find(p => p.id === playerId);
-    return player ? `${player.name} ${player.surname}` : 'Unknown Player';
+    return player ? `${player.name} ${player.surname}` : 'Nieznany Gracz';
   };
 
   const handleMatchAdded = () => {
@@ -98,11 +98,11 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
         loadMatches(); // Reload matches after deletion
         onMatchesCreated(); // Refresh dashboard
       } else {
-        setError('Failed to delete match');
+        setError('Nie udało się usunąć meczu');
       }
     } catch (error) {
       console.error('Delete match error:', error);
-      setError('An error occurred while deleting the match');
+      setError('Wystąpił błąd podczas usuwania meczu');
     } finally {
       setIsDeleting(null);
     }
@@ -111,7 +111,7 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
   if (isLoading) {
     return (
       <div className="match-creator-loading">
-        <div className="loading">Loading matches...</div>
+        <div className="loading">Ładowanie meczów...</div>
       </div>
     );
   }
@@ -120,15 +120,15 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
     <div className="match-creator">
       <div className="match-creator-header">
         <div className="match-creator-info">
-          <h3>Match Management</h3>
-          <p>View and manage matches by category</p>
+          <h3>Zarządzanie Meczami</h3>
+          <p>Wyświetlaj i zarządzaj meczami według kategorii</p>
         </div>
         <div className="match-creator-actions">
           <button 
             className="primary-btn"
             onClick={() => setShowAddMatchModal(true)}
           >
-            Add Match
+            Dodaj Mecz
           </button>
         </div>
       </div>
@@ -146,19 +146,19 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
           className={`category-tab ${selectedCategory === 'man' ? 'active' : ''}`}
           onClick={() => setSelectedCategory('man')}
         >
-          Men
+          Mężczyźni
         </button>
         <button 
           className={`category-tab ${selectedCategory === 'woman' ? 'active' : ''}`}
           onClick={() => setSelectedCategory('woman')}
         >
-          Women
+          Kobiety
         </button>
       </div>
 
       {/* Matches List */}
       <div className="matches-container">
-        <h4>{selectedCategory === 'man' ? 'Men' : 'Women'} Matches ({groupMatches.length + eliminationMatches.length})</h4>
+        <h4>{selectedCategory === 'man' ? 'Mężczyźni' : 'Kobiety'} Mecze ({groupMatches.length + eliminationMatches.length})</h4>
         <div className="matches-list">
           {groupMatches.map((match) => (
             <div key={match.id} className="match-card">
@@ -179,24 +179,24 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
                 <button 
                   className="edit-match-btn"
                   onClick={() => handleEditMatch(match)}
-                  title="Edit match details"
+                  title="Edytuj szczegóły meczu"
                 >
-                  ✏️ Edit
+                  ✏️ Edytuj
                 </button>
                 <button 
                   className="edit-score-btn"
                   onClick={() => handleEditScore(match)}
-                  title="Edit match score"
+                  title="Edytuj wynik meczu"
                 >
-                  🏓 Score
+                  🏓 Wynik
                 </button>
                 <button 
                   className="delete-match-btn"
                   onClick={() => handleDeleteMatch(match.id, 'group')}
                   disabled={isDeleting === match.id}
-                  title="Delete match"
+                  title="Usuń mecz"
                 >
-                  {isDeleting === match.id ? '⏳ Deleting...' : '🗑️ Delete'}
+                  {isDeleting === match.id ? '⏳ Usuwanie...' : '🗑️ Usuń'}
                 </button>
               </div>
             </div>
@@ -221,24 +221,24 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
                 <button 
                   className="edit-match-btn"
                   onClick={() => handleEditMatch(match)}
-                  title="Edit match details"
+                  title="Edytuj szczegóły meczu"
                 >
-                  ✏️ Edit
+                  ✏️ Edytuj
                 </button>
                 <button 
                   className="edit-score-btn"
                   onClick={() => handleEditScore(match)}
-                  title="Edit match score"
+                  title="Edytuj wynik meczu"
                 >
-                  🏓 Score
+                  🏓 Wynik
                 </button>
                 <button 
                   className="delete-match-btn"
                   onClick={() => handleDeleteMatch(match.id, 'elim')}
                   disabled={isDeleting === match.id}
-                  title="Delete match"
+                  title="Usuń mecz"
                 >
-                  {isDeleting === match.id ? '⏳ Deleting...' : '🗑️ Delete'}
+                  {isDeleting === match.id ? '⏳ Usuwanie...' : '🗑️ Usuń'}
                 </button>
               </div>
             </div>
@@ -246,8 +246,8 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
           
           {groupMatches.length === 0 && eliminationMatches.length === 0 && (
             <div className="empty-matches">
-              <p>No matches found for {selectedCategory === 'man' ? 'men' : 'women'} category.</p>
-              <p>Click "Add Match" to create new matches.</p>
+              <p>Nie znaleziono meczów dla kategorii {selectedCategory === 'man' ? 'mężczyzn' : 'kobiet'}.</p>
+              <p>Kliknij "Dodaj Mecz", aby utworzyć nowe mecze.</p>
             </div>
           )}
         </div>
@@ -258,7 +258,7 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
         <div className="modal-overlay" onClick={() => setShowAddMatchModal(false)}>
           <div className="modal-content add-match-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Add New Match</h2>
+              <h2>Dodaj Nowy Mecz</h2>
               <button 
                 className="modal-close" 
                 onClick={() => setShowAddMatchModal(false)}
@@ -282,7 +282,7 @@ export function MatchCreator({ onMatchesCreated, onEditScore }: MatchCreatorProp
         <div className="modal-overlay" onClick={() => setShowEditMatchModal(false)}>
           <div className="modal-content add-match-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Edit Match</h2>
+              <h2>Edytuj Mecz</h2>
               <button 
                 className="modal-close" 
                 onClick={() => setShowEditMatchModal(false)}

@@ -66,11 +66,11 @@ export function EditAccountModal({ isOpen, onClose, onAccountUpdated, account }:
         onAccountUpdated();
         onClose();
       } else {
-        setError('Failed to update account');
+        setError('Nie udało się zaktualizować konta');
       }
     } catch (error) {
       console.error('Update account error:', error);
-      setError('An error occurred while updating the account');
+      setError('Wystąpił błąd podczas aktualizacji konta');
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +89,7 @@ export function EditAccountModal({ isOpen, onClose, onAccountUpdated, account }:
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Edit Account</h2>
+          <h2>Edytuj Konto</h2>
           <button className="modal-close" onClick={handleClose} disabled={isLoading}>
             ×
           </button>
@@ -97,7 +97,7 @@ export function EditAccountModal({ isOpen, onClose, onAccountUpdated, account }:
 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="input-group">
-            <label htmlFor="username" className="input-label">Username *</label>
+            <label htmlFor="username" className="input-label">Nazwa użytkownika *</label>
             <input
               type="text"
               id="username"
@@ -105,14 +105,14 @@ export function EditAccountModal({ isOpen, onClose, onAccountUpdated, account }:
               value={formData.username}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="Enter username"
+              placeholder="Wprowadź nazwę użytkownika"
               required
               disabled={isLoading}
             />
           </div>
 
           <div className="input-group">
-            <label htmlFor="name" className="input-label">First Name *</label>
+            <label htmlFor="name" className="input-label">Imię *</label>
             <input
               type="text"
               id="name"
@@ -120,14 +120,14 @@ export function EditAccountModal({ isOpen, onClose, onAccountUpdated, account }:
               value={formData.name}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="Enter first name"
+              placeholder="Wprowadź imię"
               required
               disabled={isLoading}
             />
           </div>
 
           <div className="input-group">
-            <label htmlFor="surname" className="input-label">Last Name *</label>
+            <label htmlFor="surname" className="input-label">Nazwisko *</label>
             <input
               type="text"
               id="surname"
@@ -135,14 +135,14 @@ export function EditAccountModal({ isOpen, onClose, onAccountUpdated, account }:
               value={formData.surname}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="Enter last name"
+              placeholder="Wprowadź nazwisko"
               required
               disabled={isLoading}
             />
           </div>
 
           <div className="input-group">
-            <label htmlFor="category" className="input-label">Category *</label>
+            <label htmlFor="category" className="input-label">Kategoria *</label>
             <select
               id="category"
               name="category"
@@ -152,13 +152,13 @@ export function EditAccountModal({ isOpen, onClose, onAccountUpdated, account }:
               required
               disabled={isLoading}
             >
-              <option value="man">Men</option>
-              <option value="woman">Women</option>
+              <option value="man">Mężczyźni</option>
+              <option value="woman">Kobiety</option>
             </select>
           </div>
 
           <div className="input-group">
-            <label htmlFor="role" className="input-label">Role *</label>
+            <label htmlFor="role" className="input-label">Rola *</label>
             <select
               id="role"
               name="role"
@@ -168,13 +168,13 @@ export function EditAccountModal({ isOpen, onClose, onAccountUpdated, account }:
               required
               disabled={isLoading}
             >
-              <option value="player">Player</option>
-              <option value="admin">Admin</option>
+              <option value="player">Gracz</option>
+              <option value="admin">Administrator</option>
             </select>
           </div>
 
           <div className="input-group">
-            <label htmlFor="playerId" className="input-label">Player ID</label>
+            <label htmlFor="playerId" className="input-label">ID Gracza</label>
             <input
               type="number"
               id="playerId"
@@ -185,7 +185,7 @@ export function EditAccountModal({ isOpen, onClose, onAccountUpdated, account }:
               disabled
             />
             <small className="input-help">
-              Player ID cannot be changed
+              ID Gracza nie może być zmieniony
             </small>
           </div>
 
@@ -198,14 +198,14 @@ export function EditAccountModal({ isOpen, onClose, onAccountUpdated, account }:
               className="cancel-btn"
               disabled={isLoading}
             >
-              Cancel
+              Anuluj
             </button>
             <button
               type="submit"
               className="submit-btn"
               disabled={isLoading}
             >
-              {isLoading ? 'Updating...' : 'Update Account'}
+              {isLoading ? 'Aktualizowanie...' : 'Zaktualizuj Konto'}
             </button>
           </div>
         </form>

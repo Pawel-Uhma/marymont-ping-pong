@@ -41,7 +41,7 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
       setMatches(sortedMatches);
     } catch (error) {
       console.error('Load matches error:', error);
-      setError('Failed to load matches');
+      setError('Nie udało się załadować meczów');
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +50,7 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
   // Get player name by ID
   const getPlayerName = (playerId: string): string => {
     const player = players.find(p => p.id === playerId);
-    return player ? `${player.name} ${player.surname}` : 'Unknown Player';
+    return player ? `${player.name} ${player.surname}` : 'Nieznany Gracz';
   };
 
   // Check if user won the match
@@ -78,12 +78,12 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
   // Get match status text
   const getMatchStatusText = (match: GroupMatch | EliminationMatch): string => {
     if (match.status === 'final') {
-      return didUserWin(match) ? 'Won' : 'Lost';
+      return didUserWin(match) ? 'Wygrana' : 'Przegrana';
     }
     if (match.status === 'in_progress') {
-      return 'In Progress';
+      return 'W trakcie';
     }
-    return 'Scheduled';
+      return 'Zaplanowany';
   };
 
   // Get opponent name
@@ -129,7 +129,7 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content my-matches-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>My Matches</h2>
+          <h2>Moje Mecze</h2>
           <button className="modal-close" onClick={handleClose} disabled={isLoading}>
             ×
           </button>
@@ -146,7 +146,7 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
           {isLoading ? (
             <div className="loading">
               <div className="loading-spinner"></div>
-              <p>Loading matches...</p>
+              <p>Ładowanie meczów...</p>
             </div>
           ) : (
             <div className="matches-list-container">
@@ -157,7 +157,7 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
                       <div className="match-header">
                         <div className="match-phase">
                           <span className={`phase-badge ${match.phase}`}>
-                            {match.phase === 'group' ? 'Group' : 'Elimination'}
+                            {match.phase === 'group' ? 'Grupa' : 'Eliminacje'}
                           </span>
                         </div>
                         <div className="match-date">
@@ -171,7 +171,7 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
                             <div className="player-name">
                               {getPlayerName(userId)}
                             </div>
-                            <div className="player-label">You</div>
+                            <div className="player-label">Ty</div>
                           </div>
                           
                           <div className="vs-section">
@@ -185,7 +185,7 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
                             <div className="player-name">
                               {getOpponentName(match)}
                             </div>
-                            <div className="player-label">Opponent</div>
+                            <div className="player-label">Przeciwnik</div>
                           </div>
                         </div>
 
@@ -207,16 +207,16 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
                           <button
                             className="edit-match-btn"
                             onClick={() => handleEditMatch(match)}
-                            title={match.status === 'scheduled' ? 'Edit Match Details' : 'Edit Score'}
+                            title={match.status === 'scheduled' ? 'Edytuj Szczegóły Meczu' : 'Edytuj Wynik'}
                           >
-                            {match.status === 'scheduled' ? '📅 Edit' : '✏️ Edit'}
+                            {match.status === 'scheduled' ? '📅 Edytuj' : '✏️ Edytuj'}
                           </button>
                         </div>
                       </div>
 
                       <div className="match-footer">
                         <div className={`time-indicator ${isPastMatch(match) ? 'past' : 'future'}`}>
-                          {isPastMatch(match) ? 'Past Match' : 'Future Match'}
+                          {isPastMatch(match) ? 'Mecz Przeszły' : 'Mecz Przyszły'}
                         </div>
                       </div>
                     </div>
@@ -225,8 +225,8 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
               ) : (
                 <div className="no-matches">
                   <div className="no-matches-icon">🏓</div>
-                  <h3>No Matches Found</h3>
-                  <p>You don't have any matches scheduled yet.</p>
+                  <h3>Nie Znaleziono Meczów</h3>
+                  <p>Nie masz jeszcze zaplanowanych meczów.</p>
                 </div>
               )}
             </div>

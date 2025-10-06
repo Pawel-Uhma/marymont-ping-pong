@@ -27,14 +27,14 @@ class UserService {
       } else {
         return {
           success: false,
-          error: response.error || 'Invalid username or password',
+          error: response.error || 'Nieprawidłowa nazwa użytkownika lub hasło',
         };
       }
     } catch (error) {
       console.error('Login error:', error);
       return {
         success: false,
-        error: 'An error occurred during login',
+        error: 'Wystąpił błąd podczas logowania',
       };
     }
   }
@@ -57,14 +57,14 @@ class UserService {
       } else {
         return {
           success: false,
-          error: response.error || 'Authentication failed',
+          error: response.error || 'Uwierzytelnienie nie powiodło się',
         };
       }
     } catch (error) {
       console.error('Auth me error:', error);
       return {
         success: false,
-        error: 'An error occurred during authentication',
+        error: 'Wystąpił błąd podczas uwierzytelniania',
       };
     }
   }
@@ -97,7 +97,7 @@ class UserService {
   async createAccount(account: Account): Promise<boolean> {
     try {
       if (account.playerId === null) {
-        throw new Error('Player ID is required for account creation');
+        throw new Error('ID Gracza jest wymagane do utworzenia konta');
       }
       
       const response = await lambdaService.createAccount({

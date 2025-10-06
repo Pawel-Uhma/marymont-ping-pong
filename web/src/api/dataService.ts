@@ -253,7 +253,7 @@ class DataService {
 
   async getPlayerName(category: Category, playerId: string): Promise<string> {
     const player = await this.getPlayerById(category, playerId);
-    return player ? `${player.name} ${player.surname}` : 'Unknown Player';
+    return player ? `${player.name} ${player.surname}` : 'Nieznany Gracz';
   }
 
   async getMatchesForPlayer(category: Category, playerId: string): Promise<(GroupMatch | EliminationMatch)[]> {

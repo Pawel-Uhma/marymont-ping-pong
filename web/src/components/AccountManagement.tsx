@@ -29,7 +29,7 @@ export function AccountManagement() {
       setAccounts(accountsData);
     } catch (error) {
       console.error('Load accounts error:', error);
-      setError('Failed to load accounts');
+      setError('Nie udało się załadować kont');
     } finally {
       setIsLoading(false);
     }
@@ -42,11 +42,11 @@ export function AccountManagement() {
         setAccounts(prev => prev.filter(acc => acc.username !== account.username));
         setDeleteConfirm({ show: false, account: null });
       } else {
-        setError('Failed to delete account');
+        setError('Nie udało się usunąć konta');
       }
     } catch (error) {
       console.error('Delete account error:', error);
-      setError('An error occurred while deleting the account');
+      setError('Wystąpił błąd podczas usuwania konta');
     }
   };
 
@@ -76,7 +76,7 @@ export function AccountManagement() {
   if (isLoading) {
     return (
       <div className="page-container">
-        <div className="loading">Loading accounts...</div>
+        <div className="loading">Ładowanie kont...</div>
       </div>
     );
   }
@@ -84,12 +84,12 @@ export function AccountManagement() {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1>Account Management</h1>
+        <h1>Zarządzanie Kontami</h1>
         <button
           className="primary-btn"
           onClick={() => setShowAddPlayerModal(true)}
         >
-          Add New Player
+          Dodaj Nowego Gracza
         </button>
       </div>
 
@@ -104,19 +104,19 @@ export function AccountManagement() {
         <table className="accounts-table">
           <thead>
             <tr>
-              <th>Username</th>
-              <th>Role</th>
-              <th>Player ID</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Actions</th>
+              <th>Nazwa użytkownika</th>
+              <th>Rola</th>
+              <th>ID Gracza</th>
+              <th>Imię</th>
+              <th>Kategoria</th>
+              <th>Akcje</th>
             </tr>
           </thead>
           <tbody>
             {accounts.length === 0 ? (
               <tr>
                 <td colSpan={6} className="no-data">
-                  No accounts found
+                  Nie znaleziono kont
                 </td>
               </tr>
             ) : (
@@ -132,7 +132,7 @@ export function AccountManagement() {
                   <td>{account.name} {account.surname}</td>
                   <td>
                     <span className={`category-badge ${account.category}`}>
-                      {account.category === 'man' ? 'Men' : 'Women'}
+                      {account.category === 'man' ? 'Mężczyźni' : 'Kobiety'}
                     </span>
                   </td>
                   <td>
@@ -140,14 +140,14 @@ export function AccountManagement() {
                       <button
                         className="edit-btn"
                         onClick={() => handleEditAccount(account)}
-                        title="Edit account"
+                        title="Edytuj konto"
                       >
                         ✏️
                       </button>
                       <button
                         className="delete-btn"
                         onClick={() => confirmDelete(account)}
-                        title="Delete account"
+                        title="Usuń konto"
                         disabled={account.role === 'admin'}
                       >
                         🗑️
@@ -186,18 +186,18 @@ export function AccountManagement() {
         <div className="modal-overlay" onClick={cancelDelete}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Confirm Delete</h2>
+              <h2>Potwierdź Usunięcie</h2>
               <button className="modal-close" onClick={cancelDelete}>
                 ×
               </button>
             </div>
             <div className="modal-body">
               <p>
-                Are you sure you want to delete the account for{' '}
+                Czy na pewno chcesz usunąć konto dla{' '}
                 <strong>{deleteConfirm.account.username}</strong>?
               </p>
               <p className="warning-text">
-                This action cannot be undone.
+                Ta akcja nie może być cofnięta.
               </p>
             </div>
             <div className="modal-actions">
@@ -206,14 +206,14 @@ export function AccountManagement() {
                 onClick={cancelDelete}
                 className="cancel-btn"
               >
-                Cancel
+                Anuluj
               </button>
               <button
                 type="button"
                 onClick={() => handleDeleteAccount(deleteConfirm.account!)}
                 className="delete-btn"
               >
-                Delete Account
+                Usuń Konto
               </button>
             </div>
           </div>

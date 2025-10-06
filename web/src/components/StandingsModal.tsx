@@ -36,7 +36,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
       setStandings(standingsData);
     } catch (error) {
       console.error('Load standings error:', error);
-      setError('Failed to load standings');
+      setError('Nie udało się załadować klasyfikacji');
     } finally {
       setIsLoading(false);
     }
@@ -45,7 +45,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
   // Get player name by ID
   const getPlayerName = (playerId: string): string => {
     const player = players.find(p => p.id === playerId);
-    return player ? `${player.name} ${player.surname}` : 'Unknown Player';
+    return player ? `${player.name} ${player.surname}` : 'Nieznany Gracz';
   };
 
   // Get all players from all groups combined
@@ -91,13 +91,13 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
   const getDisplayStandings = (): { title: string; standings: PlayerStanding[] } => {
     if (selectedGroupId === 'all') {
       return {
-        title: `${selectedCategory === 'man' ? 'Men' : 'Women'} - All Groups Combined`,
+        title: `${selectedCategory === 'man' ? 'Mężczyźni' : 'Kobiety'} - Wszystkie Grupy Łącznie`,
         standings: getAllPlayersStandings()
       };
     } else {
       const group = standings.find(g => g.groupId === selectedGroupId);
       return {
-        title: `${selectedCategory === 'man' ? 'Men' : 'Women'} - Group ${selectedGroupId}`,
+        title: `${selectedCategory === 'man' ? 'Mężczyźni' : 'Kobiety'} - Grupa ${selectedGroupId}`,
         standings: group ? group.table : []
       };
     }
@@ -129,7 +129,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content standings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Tournament Standings</h2>
+          <h2>Klasyfikacja Turnieju</h2>
           <button className="modal-close" onClick={handleClose} disabled={isLoading}>
             ×
           </button>
@@ -151,27 +151,27 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                 onClick={() => handleCategoryChange('man')}
                 disabled={isLoading}
               >
-                Men
+                Mężczyźni
               </button>
               <button 
                 className={`category-tab ${selectedCategory === 'woman' ? 'active' : ''}`}
                 onClick={() => handleCategoryChange('woman')}
                 disabled={isLoading}
               >
-                Women
+                Kobiety
               </button>
             </div>
 
             {/* Group Selection */}
             <div className="group-selection">
-              <label className="group-label">View:</label>
+              <label className="group-label">Widok:</label>
               <div className="group-tabs">
                 <button 
                   className={`group-tab ${selectedGroupId === 'all' ? 'active' : ''}`}
                   onClick={() => handleGroupChange('all')}
                   disabled={isLoading}
                 >
-                  All Groups
+                  Wszystkie Grupy
                 </button>
                 {standings.map((group) => (
                   <button 
@@ -180,7 +180,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                     onClick={() => handleGroupChange(group.groupId)}
                     disabled={isLoading}
                   >
-                    Group {group.groupId}
+                    Grupa {group.groupId}
                   </button>
                 ))}
               </div>
@@ -192,7 +192,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
             {isLoading ? (
               <div className="loading">
                 <div className="loading-spinner"></div>
-                <p>Loading standings...</p>
+                <p>Ładowanie klasyfikacji...</p>
               </div>
             ) : (
               <div className="standings-table-container">
@@ -201,12 +201,12 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                   <table className="standings-table">
                     <thead>
                       <tr>
-                        <th>Rank</th>
-                        <th>Player</th>
-                        <th>W-L</th>
-                        <th>Sets +/-</th>
-                        <th>Points +/-</th>
-                        <th>Win %</th>
+                        <th>Miejsce</th>
+                        <th>Gracz</th>
+                        <th>W-P</th>
+                        <th>Sety +/-</th>
+                        <th>Punkty +/-</th>
+                        <th>% Zwycięstw</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -254,8 +254,8 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                 ) : (
                   <div className="no-standings">
                     <div className="no-standings-icon">📊</div>
-                    <h3>No Standings Available</h3>
-                    <p>No standings data found for the selected category and group.</p>
+                    <h3>Brak Dostępnej Klasyfikacji</h3>
+                    <p>Nie znaleziono danych klasyfikacji dla wybranej kategorii i grupy.</p>
                   </div>
                 )}
               </div>
