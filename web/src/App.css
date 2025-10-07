@@ -5,6 +5,60 @@
   flex-direction: column;
 }
 
+/* Footer Styles */
+.footer {
+  background: var(--black);
+  border-top: 2px solid var(--yellow);
+  margin-top: auto;
+}
+
+.footer-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-info {
+  flex: 1;
+}
+
+.footer-text {
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.footer-btn {
+  background: var(--red);
+  color: var(--white);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer-btn:hover {
+  background: #d32f2f;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 20, 60, 0.3);
+}
+
 /* Login Screen Styles */
 .login-container {
   display: flex;
@@ -718,23 +772,66 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .login-card {
-    padding: 32px 24px;
+    padding: 24px 20px;
     margin: 16px;
+    max-width: calc(100vw - 32px);
+  }
+  
+  .login-title {
+    font-size: 24px;
   }
   
   .header-content {
     padding: 12px 16px;
     flex-direction: column;
     gap: 12px;
+    align-items: stretch;
+  }
+  
+  .logo-section {
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .logo {
+    font-size: 20px;
+  }
+  
+  .target-icon {
+    font-size: 20px;
   }
   
   .user-section {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
   }
   
+  .user-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .username {
+    font-size: 14px;
+  }
+  
+  .role-badge {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  
+  .logout-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+    min-width: 80px;
+  }
+  
   .main-content {
-    padding: 16px;
+    padding: 12px;
     gap: 16px;
   }
   
@@ -743,9 +840,127 @@
     gap: 16px;
   }
   
+  .next-match-card {
+    padding: 20px 16px;
+  }
+  
+  .card-header h3 {
+    font-size: 18px;
+  }
+  
+  .match-time {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  
+  .opponents {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .vs {
+    font-size: 16px;
+    order: 2;
+  }
+  
+  .player {
+    order: 1;
+  }
+  
+  .player:last-child {
+    order: 3;
+  }
+  
+  .player-name {
+    font-size: 16px;
+  }
+  
+  .set-scores {
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+  }
+  
+  .edit-score-btn {
+    padding: 12px 20px;
+    font-size: 16px;
+    width: 100%;
+    margin-top: 12px;
+  }
+  
+  .quick-actions {
+    padding: 20px 16px;
+  }
+  
+  .quick-actions h4 {
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .action-buttons {
+    gap: 12px;
+  }
+  
+  .action-btn {
+    padding: 14px 20px;
+    font-size: 16px;
+    border-radius: 8px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .admin-actions {
+    margin-top: 16px;
+    padding: 20px 16px;
+  }
+  
+  .admin-actions h4 {
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
   .middle-section {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+  
+  .upcoming-matches,
+  .my-matches {
+    padding: 20px 16px;
+  }
+  
+  .section-header h3 {
+    font-size: 18px;
+    text-align: center;
+  }
+  
+  .match-item {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  
+  .match-item .time {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+  }
+  
+  .match-item .players {
+    font-size: 15px;
+    font-weight: 500;
+  }
+  
+  .match-item .status {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
   }
   
   .bottom-section {
@@ -753,50 +968,372 @@
     gap: 16px;
   }
   
-  .opponents {
-    flex-direction: column;
-    gap: 8px;
+  .group-standings {
+    padding: 20px 16px;
   }
   
-  .vs {
-    font-size: 16px;
+  .group-standings h3 {
+    font-size: 18px;
+    text-align: center;
+    margin-bottom: 16px;
   }
   
-  .set-scores {
-    flex-direction: column;
-    gap: 4px;
+  .tabs {
+    justify-content: center;
+    margin-bottom: 16px;
   }
   
-  .action-buttons {
+  .tab {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  .group-tabs {
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 6px;
   }
   
-  .admin-actions {
-    margin-top: 12px;
-    padding: 16px;
+  .group-tab {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .standings-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .standings-table table {
+    min-width: 500px;
+  }
+  
+  .standings-table th,
+  .standings-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+  
+  .bracket-preview {
+    padding: 20px 16px;
+  }
+  
+  .bracket-preview h3 {
+    font-size: 18px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  
+  .bracket {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .bracket-round {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 8px;
+  }
+  
+  .bracket-round h5 {
+    font-size: 13px;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  
+  .bracket-match {
+    min-width: 100px;
+    padding: 10px 8px;
+    font-size: 11px;
   }
   
   .modal-content {
     width: 95%;
     margin: 16px;
+    max-height: 95vh;
   }
   
   .modal-header {
     padding: 16px 16px 0 16px;
   }
   
+  .modal-header h2 {
+    font-size: 18px;
+  }
+  
   .modal-form {
     padding: 0 16px 16px 16px;
   }
   
-  .bracket {
+  .footer-content {
     flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    padding: 12px 16px;
+  }
+  
+  .footer-text {
+    font-size: 13px;
+  }
+  
+  .footer-btn {
+    padding: 10px 20px;
+    font-size: 15px;
+    min-height: 44px;
+  }
+}
+
+/* Additional mobile optimizations for very small screens */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 20px 16px;
+    margin: 12px;
+  }
+  
+  .login-title {
+    font-size: 22px;
+  }
+  
+  .input-field {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 14px 16px;
+    min-height: 48px;
+    border-radius: 8px;
+  }
+  
+  .input-label {
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  
+  .input-group {
+    gap: 12px;
+  }
+  
+  .login-btn {
+    padding: 16px 24px;
+    font-size: 18px;
+  }
+  
+  .header-content {
+    padding: 10px 12px;
+  }
+  
+  .logo {
+    font-size: 18px;
+  }
+  
+  .user-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .user-info {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .main-content {
+    padding: 8px;
+    gap: 12px;
+  }
+  
+  .next-match-card,
+  .quick-actions,
+  .admin-actions,
+  .upcoming-matches,
+  .my-matches,
+  .group-standings,
+  .bracket-preview {
+    padding: 16px 12px;
+  }
+  
+  .card-header h3,
+  .quick-actions h4,
+  .admin-actions h4,
+  .section-header h3,
+  .group-standings h3,
+  .bracket-preview h3 {
+    font-size: 16px;
+  }
+  
+  .action-btn {
+    padding: 16px 20px;
+    font-size: 16px;
+    min-height: 52px;
+  }
+  
+  .match-item {
+    padding: 16px 12px;
+  }
+  
+  .match-item .players {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .tab {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+  
+  .group-tab {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .standings-table th,
+  .standings-table td {
+    padding: 12px 6px;
+    font-size: 12px;
+  }
+  
+  .modal-content {
+    width: 98%;
+    margin: 8px;
+    max-height: 96vh;
+  }
+  
+  .modal-header {
+    padding: 12px 12px 0 12px;
+  }
+  
+  .modal-header h2 {
+    font-size: 16px;
+  }
+  
+  .modal-form {
+    padding: 0 12px 12px 12px;
+  }
+  
+  .edit-score-btn {
+    padding: 16px 24px;
+    font-size: 18px;
+  }
+}
+
+/* Mobile form controls improvements */
+@media (max-width: 768px) {
+  .input-field,
+  .player-select,
+  .group-select,
+  .filter-select,
+  .group-count-input {
+    font-size: 16px;
+    min-height: 48px;
+    padding: 14px 16px;
+    border-radius: 8px;
+  }
+  
+  .input-label,
+  .slot-label,
+  .group-label,
+  .group-count-label,
+  .category-label {
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  
+  .input-group,
+  .slot-container {
+    gap: 12px;
+  }
+  
+  .score-input {
+    font-size: 18px;
+    padding: 16px;
+    min-height: 52px;
+    text-align: center;
+  }
+  
+  .score-label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  
+  .score-input-group {
     gap: 8px;
   }
   
-  .bracket-round {
-    flex-direction: row;
-    overflow-x: auto;
+  /* Edit Score Modal mobile fixes */
+  .edit-score-modal {
+    max-width: 95vw;
+    width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .edit-score-modal .modal-body {
+    padding: 16px;
+  }
+  
+  .edit-score-modal .modal-actions {
+    padding: 16px;
+  }
+}
+
+/* Mobile touch improvements */
+@media (max-width: 768px) {
+  /* Improve touch targets */
+  button,
+  .action-btn,
+  .tab,
+  .group-tab,
+  .category-tab,
+  .modal-close,
+  .edit-btn,
+  .delete-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better scrolling */
+  .modal-content,
+  .accounts-table-container,
+  .standings-table,
+  .matches-list,
+  .bracket {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Prevent zoom on input focus */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  
+  /* Better spacing for touch */
+  .match-item,
+  .player-card,
+  .group-player,
+  .player-assignment {
+    padding: 16px 12px;
+    margin-bottom: 8px;
+  }
+  
+  /* Improve readability */
+  .match-item .players,
+  .player-name,
+  .username {
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  
+  /* Better modal positioning */
+  .modal-overlay {
+    padding: 8px;
+  }
+  
+  .modal-content {
+    margin: 0;
+    max-height: calc(100vh - 16px);
   }
 }
 
@@ -1596,6 +2133,34 @@ input[type="date"]:valid:before {
   border-top: 1px solid var(--light-gray);
   background: var(--white);
   border-radius: 0 0 8px 8px;
+  flex-shrink: 0;
+}
+
+/* Edit Score Modal specific actions */
+.edit-score-modal .modal-actions {
+  margin-top: 0;
+  position: relative;
+  z-index: 10;
+}
+
+/* Mobile modal actions */
+@media (max-width: 768px) {
+  .modal-actions {
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 16px;
+  }
+  
+  .modal-actions .cancel-btn,
+  .modal-actions .submit-btn,
+  .modal-actions .primary-btn,
+  .modal-actions .secondary-btn,
+  .modal-actions .red-btn {
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 16px;
+    min-height: 48px;
+  }
 }
 
 /* Status Badge */
@@ -1646,25 +2211,30 @@ input[type="date"]:valid:before {
 
 .match-actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   padding: 16px;
   border-left: 1px solid var(--medium-gray);
   align-items: center;
   background: var(--light-gray);
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
-.edit-match-btn, .delete-match-btn {
+.edit-match-btn, .delete-match-btn, .edit-score-btn {
   background: var(--white);
   border: 2px solid var(--medium-gray);
   cursor: pointer;
-  font-size: 16px;
-  padding: 8px 12px;
-  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: 8px;
   transition: all 0.2s ease;
-  min-width: 40px;
+  min-width: 80px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
 }
 
 .edit-match-btn {
@@ -1677,6 +2247,19 @@ input[type="date"]:valid:before {
   color: var(--white);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(30, 144, 255, 0.3);
+}
+
+.edit-score-btn {
+  border-color: var(--yellow);
+  color: var(--yellow);
+  background: var(--white);
+}
+
+.edit-score-btn:hover {
+  background: var(--yellow);
+  color: var(--black);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
 
 .delete-match-btn {
@@ -1694,6 +2277,8 @@ input[type="date"]:valid:before {
 .delete-match-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .match-players {
@@ -1939,12 +2524,15 @@ input[type="date"]:valid:before {
   max-height: 90vh;
   width: 800px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .edit-score-modal .modal-body {
   padding: 24px;
   overflow-y: auto;
-  max-height: calc(90vh - 140px);
+  flex: 1;
+  min-height: 0;
 }
 
 .match-info-section {
@@ -2674,6 +3262,20 @@ input[type="date"]:valid:before {
     gap: 8px;
   }
   
+  .score-input {
+    font-size: 20px;
+    padding: 16px;
+  }
+  
+  .set-input {
+    padding: 20px 16px;
+  }
+  
+  .set-number {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  
   /* My Matches Modal Responsive */
   .my-matches-modal {
     max-width: 98vw;
@@ -2713,11 +3315,18 @@ input[type="date"]:valid:before {
     border-left: none;
     border-top: 1px solid var(--medium-gray);
     justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
   }
   
-  .edit-match-btn, .delete-match-btn {
-    font-size: 14px;
-    padding: 6px 10px;
+  .edit-match-btn, .delete-match-btn, .edit-score-btn {
+    font-size: 13px;
+    padding: 8px 12px;
+    min-width: 70px;
+    min-height: 40px;
+    flex: 1;
+    max-width: 120px;
   }
   
   /* Groups Modal Responsive */
@@ -3252,10 +3861,42 @@ input[type="date"]:valid:before {
 
   .accounts-table-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
   }
 
   .accounts-table {
     min-width: 600px;
+  }
+  
+  .accounts-table th,
+  .accounts-table td {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+  
+  .accounts-table th {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .role-badge,
+  .category-badge {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .edit-btn,
+  .delete-btn {
+    padding: 8px 12px;
+    font-size: 14px;
+    min-height: 36px;
   }
 
   .account-management-modal {

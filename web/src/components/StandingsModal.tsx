@@ -43,9 +43,14 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
   };
 
   // Get player name by ID
-  const getPlayerName = (playerId: string): string => {
-    const player = players.find(p => p.id === playerId);
-    return player ? `${player.name} ${player.surname}` : 'Nieznany Gracz';
+  const getPlayerName = (player: PlayerStanding): string => {
+    // Use the name from the standings data if available
+    if (player.name && player.surname) {
+      return `${player.name} ${player.surname}`;
+    }
+    // Fallback to lookup in players array
+    const playerData = players.find(p => p.id === player.playerId);
+    return playerData ? `${playerData.name} ${playerData.surname}` : 'Nieznany Gracz';
   };
 
   // Get all players from all groups combined
@@ -59,31 +64,52 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
           // Combine stats
           existingPlayer.wins += player.wins;
           existingPlayer.losses += player.losses;
-          existingPlayer.setsFor += player.setsFor;
-          existingPlayer.setsAgainst += player.setsAgainst;
-          existingPlayer.pointsFor += player.pointsFor;
-          existingPlayer.pointsAgainst += player.pointsAgainst;
+          existingPlayer.setsWon += player.setsWon;
+          existingPlayer.setsLost += player.setsLost;
+          existingPlayer.pointsWon += player.pointsWon;
+          existingPlayer.pointsLost += player.pointsLost;
+          // Recalculate differences
+          existingPlayer.setDifference = existingPlayer.setsWon - existingPlayer.setsLost;
+          existingPlayer.pointDifference = existingPlayer.pointsWon - existingPlayer.pointsLost;
+          // Recalculate win percentage
+          const totalMatches = existingPlayer.wins + existingPlayer.losses;
+          existingPlayer.winPercentage = totalMatches > 0 ? (existingPlayer.wins / totalMatches) * 100 : 0;
+          // Update legacy fields for backward compatibility
+          existingPlayer.setsFor = existingPlayer.setsWon;
+          existingPlayer.setsAgainst = existingPlayer.setsLost;
+          existingPlayer.pointsFor = existingPlayer.pointsWon;
+          existingPlayer.pointsAgainst = existingPlayer.pointsLost;
         } else {
-          // Add new player
-          allPlayers.set(player.playerId, { ...player });
+          // Add new player with legacy field mapping
+          allPlayers.set(player.playerId, { 
+            ...player,
+            setsFor: player.setsWon,
+            setsAgainst: player.setsLost,
+            pointsFor: player.pointsWon,
+            pointsAgainst: player.pointsLost
+          });
         }
       });
     });
 
-    // Convert to array and sort by wins/losses
+    // Convert to array and sort by rank (since API already provides ranking)
     const combinedPlayers = Array.from(allPlayers.values());
     return combinedPlayers.sort((a, b) => {
-      // Primary: Wins - Losses
+      // Use the rank from API if available, otherwise sort by record
+      if (a.rank && b.rank) {
+        return a.rank - b.rank;
+      }
+      
+      // Fallback sorting logic
       const aRecord = a.wins - a.losses;
       const bRecord = b.wins - b.losses;
       if (aRecord !== bRecord) return bRecord - aRecord;
       
       // Secondary: Sets difference
-      const aSetsDiff = (a.setsFor - a.setsAgainst) - (b.setsFor - b.setsAgainst);
-      if (aSetsDiff !== 0) return aSetsDiff;
+      if (a.setDifference !== b.setDifference) return b.setDifference - a.setDifference;
       
       // Tertiary: Points difference
-      return (b.pointsFor - b.pointsAgainst) - (a.pointsFor - a.pointsAgainst);
+      return b.pointDifference - a.pointDifference;
     });
   };
 
@@ -97,7 +123,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
     } else {
       const group = standings.find(g => g.groupId === selectedGroupId);
       return {
-        title: `${selectedCategory === 'man' ? 'Mężczyźni' : 'Kobiety'} - Grupa ${selectedGroupId}`,
+        title: `${selectedCategory === 'man' ? 'Mężczyźni' : 'Kobiety'} - ${selectedGroupId === 'nogroup' ? 'Brak Grupy' : `Grupa ${selectedGroupId}`}`,
         standings: group ? group.table : []
       };
     }
@@ -180,7 +206,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                     onClick={() => handleGroupChange(group.groupId)}
                     disabled={isLoading}
                   >
-                    Grupa {group.groupId}
+                    {group.groupId === 'nogroup' ? 'Brak Grupy' : `Grupa ${group.groupId}`}
                   </button>
                 ))}
               </div>
@@ -211,9 +237,12 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                     </thead>
                     <tbody>
                       {displayData.standings.map((player, index) => {
-                        const winPercentage = (player.wins + player.losses) > 0 
-                          ? ((player.wins / (player.wins + player.losses)) * 100).toFixed(1)
-                          : '0.0';
+                        // Use winPercentage from API if available, otherwise calculate
+                        const winPercentage = player.winPercentage !== undefined 
+                          ? player.winPercentage.toFixed(1)
+                          : (player.wins + player.losses) > 0 
+                            ? ((player.wins / (player.wins + player.losses)) * 100).toFixed(1)
+                            : '0.0';
                         
                         return (
                           <tr key={player.playerId} className={index < 3 ? `top-${index + 1}` : ''}>
@@ -225,7 +254,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                             </td>
                             <td className="player-cell">
                               <div className="player-info">
-                                <span className="player-name">{getPlayerName(player.playerId)}</span>
+                                <span className="player-name">{getPlayerName(player)}</span>
                                 <span className="player-id">#{player.playerId}</span>
                               </div>
                             </td>
@@ -234,13 +263,13 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                               <span className="losses">{player.losses}</span>
                             </td>
                             <td className="sets-cell">
-                              <span className={`sets-diff ${(player.setsFor - player.setsAgainst) > 0 ? 'positive' : 'negative'}`}>
-                                {(player.setsFor - player.setsAgainst) > 0 ? '+' : ''}{player.setsFor - player.setsAgainst}
+                              <span className={`sets-diff ${player.setDifference > 0 ? 'positive' : 'negative'}`}>
+                                {player.setDifference > 0 ? '+' : ''}{player.setDifference}
                               </span>
                             </td>
                             <td className="points-cell">
-                              <span className={`points-diff ${(player.pointsFor - player.pointsAgainst) > 0 ? 'positive' : 'negative'}`}>
-                                {(player.pointsFor - player.pointsAgainst) > 0 ? '+' : ''}{player.pointsFor - player.pointsAgainst}
+                              <span className={`points-diff ${player.pointDifference > 0 ? 'positive' : 'negative'}`}>
+                                {player.pointDifference > 0 ? '+' : ''}{player.pointDifference}
                               </span>
                             </td>
                             <td className="percentage-cell">

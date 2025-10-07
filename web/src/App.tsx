@@ -469,8 +469,8 @@ function App() {
                                 <td>{player.rank}</td>
                                 <td>{getPlayerName(player.playerId)}</td>
                                 <td>{player.wins}-{player.losses}</td>
-                                <td>{player.setsFor - player.setsAgainst > 0 ? '+' : ''}{player.setsFor - player.setsAgainst}</td>
-                                <td>{player.pointsFor - player.pointsAgainst > 0 ? '+' : ''}{player.pointsFor - player.pointsAgainst}</td>
+                                <td>{(player.setsFor || 0) - (player.setsAgainst || 0) > 0 ? '+' : ''}{(player.setsFor || 0) - (player.setsAgainst || 0)}</td>
+                                <td>{(player.pointsFor || 0) - (player.pointsAgainst || 0) > 0 ? '+' : ''}{(player.pointsFor || 0) - (player.pointsAgainst || 0)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -513,6 +513,23 @@ function App() {
             </div>
           </div>
         </main>
+        
+        {/* Footer */}
+        <footer className="footer">
+          <div className="footer-content">
+            <div className="footer-info">
+              <span className="footer-text">© 2025 Marymont Ping Pong</span>
+            </div>
+            <div className="footer-actions">
+              <button 
+                className="footer-btn"
+                onClick={() => window.open('https://www.youtube.com/watch?v=xvFZjo5PgG0', '_blank')}
+              >
+                Zgłoś problem
+              </button>
+            </div>
+          </div>
+        </footer>
         
         {/* Add Player Modal */}
         <AddPlayerModal

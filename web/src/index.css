@@ -24,6 +24,9 @@ body {
   color: var(--black);
   background-color: var(--white);
   min-height: 100vh;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {

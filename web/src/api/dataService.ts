@@ -203,6 +203,40 @@ class DataService {
   async getStandings(category: Category): Promise<GroupStanding[]> {
     try {
       const response = await lambdaService.getStandings(category);
+      
+      // Handle new API structure with direct players array
+      if (response.players) {
+        // Group players by their group
+        const playersByGroup = new Map<string, PlayerStanding[]>();
+        
+        response.players.forEach(player => {
+          const groupKey = player.group || 'No Group';
+          if (!playersByGroup.has(groupKey)) {
+            playersByGroup.set(groupKey, []);
+          }
+          playersByGroup.get(groupKey)!.push({
+            ...player,
+            // Map new field names to legacy ones for backward compatibility
+            setsFor: player.setsWon,
+            setsAgainst: player.setsLost,
+            pointsFor: player.pointsWon,
+            pointsAgainst: player.pointsLost
+          });
+        });
+        
+        // Convert to GroupStanding format
+        const groups: GroupStanding[] = [];
+        playersByGroup.forEach((players, groupId) => {
+          groups.push({
+            groupId: groupId === 'No Group' ? 'nogroup' : groupId,
+            table: players.sort((a, b) => a.rank - b.rank)
+          });
+        });
+        
+        return groups;
+      }
+      
+      // Fallback to legacy structure
       return response.groups || [];
     } catch (error) {
       console.error(`Get standings error for ${category}:`, error);

@@ -97,13 +97,26 @@ export type Match = GroupMatch | EliminationMatch;
 // Standings types
 export interface PlayerStanding {
   playerId: string;
+  matchesPlayed: number;
   wins: number;
   losses: number;
-  setsFor: number;
-  setsAgainst: number;
-  pointsFor: number;
-  pointsAgainst: number;
+  setsWon: number;
+  setsLost: number;
+  pointsWon: number;
+  pointsLost: number;
+  setDifference: number;
+  pointDifference: number;
+  winPercentage: number;
   rank: number;
+  name: string;
+  surname: string;
+  username: string;
+  group: string;
+  // Legacy fields for backward compatibility
+  setsFor?: number;
+  setsAgainst?: number;
+  pointsFor?: number;
+  pointsAgainst?: number;
 }
 
 export interface GroupStanding {
@@ -189,7 +202,8 @@ export interface LambdaMatchesResponse {
 
 export interface LambdaStandingsResponse {
   success: boolean;
-  groups?: GroupStanding[];
+  players?: PlayerStanding[];
+  groups?: GroupStanding[]; // Legacy support
   error?: string;
 }
 
