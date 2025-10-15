@@ -6,6 +6,7 @@ import type {
   GroupMatch, 
   EliminationMatch, 
   GroupStanding, 
+  PlayerStanding,
   BracketData, 
   Category 
 } from './types';
@@ -209,7 +210,7 @@ class DataService {
         // Group players by their group
         const playersByGroup = new Map<string, PlayerStanding[]>();
         
-        response.players.forEach(player => {
+        response.players.forEach((player: PlayerStanding) => {
           const groupKey = player.group || 'No Group';
           if (!playersByGroup.has(groupKey)) {
             playersByGroup.set(groupKey, []);
