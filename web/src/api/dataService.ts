@@ -45,7 +45,7 @@ class DataService {
           surname: player.surname,
           category: player.category,
           username: `${player.name.toLowerCase()}.${player.surname.toLowerCase()}`,
-          password: 'temp_password',
+          password: '', // Optional, not required
           role: 'player',
           playerId: parseInt(player.id),
         });
@@ -254,6 +254,16 @@ class DataService {
       return true;
     } catch (error) {
       console.error(`Save standings error for ${category}:`, error);
+      return false;
+    }
+  }
+
+  async recalculateStandings(category: Category): Promise<boolean> {
+    try {
+      const response = await lambdaService.computeStandings(category);
+      return response.success !== false && !response.error;
+    } catch (error) {
+      console.error(`Recalculate standings error for ${category}:`, error);
       return false;
     }
   }

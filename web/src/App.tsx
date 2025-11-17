@@ -20,7 +20,7 @@ interface User {
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<User | null>(null)
-  const [credentials, setCredentials] = useState<LoginCredentials>({ username: '', password: '' })
+  const [credentials, setCredentials] = useState<LoginCredentials>({ username: '' })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   
@@ -83,7 +83,7 @@ function App() {
           }
           setUser(userWithCategory)
           setIsLoggedIn(true)
-          setCredentials({ username: '', password: '' })
+          setCredentials({ username: '' })
           
           // Load dashboard data after successful login
           loadDashboardData()
@@ -92,7 +92,7 @@ function App() {
           // Still login but without category
           setUser(response.user)
           setIsLoggedIn(true)
-          setCredentials({ username: '', password: '' })
+          setCredentials({ username: '' })
           loadDashboardData()
         }
       } else {
@@ -109,7 +109,7 @@ function App() {
   const handleLogout = () => {
     setIsLoggedIn(false)
     setUser(null)
-    setCredentials({ username: '', password: '' })
+    setCredentials({ username: '' })
     setError('')
   }
 
@@ -661,21 +661,6 @@ function App() {
                 onChange={handleInputChange}
                 className="input-field"
                 placeholder="Wprowadź nazwę użytkownika"
-                required
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div className="input-group">
-              <label htmlFor="password" className="input-label">Hasło</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={credentials.password}
-                onChange={handleInputChange}
-                className="input-field"
-                placeholder="Wprowadź hasło"
                 required
                 disabled={isLoading}
               />

@@ -32,6 +32,16 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
       setIsLoading(true);
       setError('');
       
+      // Automatically recalculate standings when modal opens
+      // If recalculation fails (e.g., non-admin user), just load existing standings
+      try {
+        await dataService.recalculateStandings(selectedCategory);
+      } catch (recalcError) {
+        // Silently fail recalculation - will just load existing standings
+        console.log('Recalculation not available, loading existing standings');
+      }
+      
+      // Load the standings (either newly calculated or existing)
       const standingsData = await dataService.getStandings(selectedCategory);
       setStandings(standingsData);
     } catch (error) {
@@ -218,7 +228,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
             {isLoading ? (
               <div className="loading">
                 <div className="loading-spinner"></div>
-                <p>Ładowanie klasyfikacji...</p>
+                <p>Przeliczanie i ładowanie klasyfikacji...</p>
               </div>
             ) : (
               <div className="standings-table-container">
@@ -238,11 +248,17 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                     <tbody>
                       {displayData.standings.map((player, index) => {
                         // Use winPercentage from API if available, otherwise calculate
-                        const winPercentage = player.winPercentage !== undefined 
-                          ? player.winPercentage.toFixed(1)
-                          : (player.wins + player.losses) > 0 
+                        // Handle both old format (0-1) and new format (0-100)
+                        let winPercentage: string;
+                        if (player.winPercentage !== undefined) {
+                          // If value is <= 1, it's in old format (0-1), multiply by 100
+                          const percentage = player.winPercentage <= 1.0 ? player.winPercentage * 100 : player.winPercentage;
+                          winPercentage = percentage.toFixed(1);
+                        } else {
+                          winPercentage = (player.wins + player.losses) > 0 
                             ? ((player.wins / (player.wins + player.losses)) * 100).toFixed(1)
                             : '0.0';
+                        }
                         
                         return (
                           <tr key={player.playerId} className={index < 3 ? `top-${index + 1}` : ''}>

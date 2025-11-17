@@ -9,7 +9,14 @@ class UserService {
   // Login user using Lambda
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      const response = await lambdaService.login(credentials.username, credentials.password);
+      const username = (credentials.username || '').trim();
+      if (!username) {
+        return {
+          success: false,
+          error: 'Nazwa użytkownika jest wymagana',
+        };
+      }
+      const response = await lambdaService.login(username, credentials.password || undefined);
       
       // Check if we have a token (successful login)
       if (response.token) {
@@ -102,7 +109,7 @@ class UserService {
       
       const response = await lambdaService.createAccount({
         username: account.username,
-        password: account.password,
+        password: account.password || "",
         name: account.name,
         surname: account.surname,
         role: account.role,

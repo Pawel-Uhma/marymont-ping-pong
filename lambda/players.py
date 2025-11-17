@@ -83,12 +83,12 @@ def create_player(payload: dict, auth_user: dict):
     surname = (payload or {}).get("surname", "").strip()
     category = (payload or {}).get("category")
     username = (payload or {}).get("username", "").strip()
-    password = (payload or {}).get("password", "")
+    password = (payload or {}).get("password", "")  # Optional, can be empty
 
     if category not in ("man", "woman"):
         return _resp(400, {"error": "category must be man|woman"})
-    if not (name and surname and username and password):
-        return _resp(400, {"error": "name, surname, username, password required"})
+    if not (name and surname and username):
+        return _resp(400, {"error": "name, surname, username required"})
 
     # Load players
     players_file = _get_json(_p_players(category), {"players": [], "version": 1})

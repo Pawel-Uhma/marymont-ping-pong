@@ -48,11 +48,13 @@ class LambdaService {
         } as LambdaRequest),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = result.error || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMessage);
       }
 
-      const result = await response.json();
       return result;
     } catch (error) {
       console.error(`Lambda request error for action ${action}:`, error);
@@ -70,8 +72,16 @@ class LambdaService {
     return result;
   }
 
-  async login(username: string, password: string): Promise<LambdaResponse> {
-    return this.request("auth.login", { username, password });
+  async login(username: string, password?: string): Promise<LambdaResponse> {
+    const trimmedUsername = (username || '').trim();
+    if (!trimmedUsername) {
+      throw new Error('Username is required');
+    }
+    const payload: any = { username: trimmedUsername };
+    if (password && password.trim()) {
+      payload.password = password.trim();
+    }
+    return this.request("auth.login", payload);
   }
 
   // Player methods (now work with accounts)
@@ -163,6 +173,10 @@ class LambdaService {
     return this.request("standings.get", { category });
   }
 
+  async computeStandings(category: "man" | "woman"): Promise<LambdaResponse> {
+    return this.request("standings.compute", { category });
+  }
+
   async updateStandings(category: "man" | "woman", standings: any): Promise<LambdaResponse> {
     return this.request("standings.update", { category, standings });
   }
@@ -183,7 +197,7 @@ class LambdaService {
 
   async createAccount(account: {
     username: string;
-    password: string;
+    password?: string;
     name: string;
     surname: string;
     role: "admin" | "player";

@@ -157,7 +157,7 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
                       <div className="match-header">
                         <div className="match-phase">
                           <span className={`phase-badge ${match.phase}`}>
-                            {match.phase === 'group' ? 'Grupa' : 'Eliminacje'}
+                            {match.phase === 'group' ? 'Grupa' : 'Faza Pucharowa'}
                           </span>
                         </div>
                         <div className="match-date">
@@ -216,7 +216,7 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
 
                       <div className="match-footer">
                         <div className={`time-indicator ${isPastMatch(match) ? 'past' : 'future'}`}>
-                          {isPastMatch(match) ? 'Mecz Przeszły' : 'Mecz Przyszły'}
+                          {isPastMatch(match) ? 'Mecz Zakończony' : 'Mecz Przyszły'}
                         </div>
                       </div>
                     </div>

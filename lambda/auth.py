@@ -106,14 +106,12 @@ def _save_accounts(accounts: dict):
 # --- Action: auth.login ---
 def login(payload: dict):
     username = (payload or {}).get("username", "").strip()
-    password = (payload or {}).get("password", "")
-    if not username or not password:
-        return _resp(400, {"error": "username and password required"})
+    if not username:
+        return _resp(400, {"error": "username required"})
 
     accounts = _load_accounts()
     user = next((u for u in accounts.get("users", []) if u.get("username") == username), None)
-    # Plaintext compare per your requirement
-    if not user or user.get("password") != password:
+    if not user:
         return _resp(401, {"error": "Invalid credentials"})
 
     token = _sign_token({"sub": username, "role": user.get("role"), "playerId": user.get("playerId")})
@@ -161,7 +159,7 @@ def create_account(payload: dict, auth_user: dict):
         return _resp(403, {"error": "Admin access required"})
     
     username = (payload or {}).get("username", "").strip()
-    password = (payload or {}).get("password", "")
+    password = (payload or {}).get("password", "")  # Optional, can be empty
     name = (payload or {}).get("name", "").strip()
     surname = (payload or {}).get("surname", "").strip()
     role = (payload or {}).get("role", "player").strip()
@@ -169,8 +167,8 @@ def create_account(payload: dict, auth_user: dict):
     category = (payload or {}).get("category", "man").strip()
     
     # Validation
-    if not username or not password:
-        return _resp(400, {"error": "username and password required"})
+    if not username:
+        return _resp(400, {"error": "username required"})
     
     if not name or not surname:
         return _resp(400, {"error": "name and surname required"})

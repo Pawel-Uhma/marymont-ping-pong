@@ -149,7 +149,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
           </div>
 
           <div className="input-group">
-            <label htmlFor="password" className="input-label">Hasło *</label>
+            <label htmlFor="password" className="input-label">Hasło</label>
             <input
               type="password"
               id="password"
@@ -157,8 +157,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
               value={formData.password}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="Wprowadź hasło"
-              required
+              placeholder="Wprowadź hasło (opcjonalne)"
               disabled={isLoading}
             />
           </div>

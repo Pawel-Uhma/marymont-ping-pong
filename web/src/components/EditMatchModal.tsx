@@ -239,7 +239,7 @@ export function EditMatchModal({ category, match, onMatchUpdated, onClose }: Edi
               disabled={isSaving}
             >
               <option value="group">Grupa</option>
-              <option value="elim">Eliminacje</option>
+              <option value="elim">Faza Pucharowa</option>
             </select>
           </div>
 

@@ -235,7 +235,7 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
               disabled={isSaving}
             >
               <option value="group">Grupa</option>
-              <option value="elimination">Eliminacje</option>
+              <option value="elimination">Faza Pucharowa</option>
             </select>
           </div>
 

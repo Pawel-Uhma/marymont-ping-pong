@@ -3,7 +3,7 @@
 // Account types - now includes player information
 export interface Account {
   username: string;
-  password: string;
+  password?: string; // Optional, not required
   name: string;
   surname: string;
   role: 'admin' | 'player';
@@ -159,7 +159,7 @@ export interface S3Config {
 
 export interface LoginCredentials {
   username: string;
-  password: string;
+  password?: string; // Optional, not required for login
 }
 
 export interface LoginResponse {

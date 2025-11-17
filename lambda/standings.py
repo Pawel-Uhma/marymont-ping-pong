@@ -107,7 +107,7 @@ def _update_player_stats(stats, sets_for, sets_against, points_for, points_again
         stats["losses"] += 1
     
     if stats["matchesPlayed"] > 0:
-        stats["winPercentage"] = round(stats["wins"] / stats["matchesPlayed"], 3)
+        stats["winPercentage"] = round((stats["wins"] / stats["matchesPlayed"]) * 100, 1)
 
 def _rank_players(players):
     """Rank players by wins, set difference, point difference"""
@@ -123,8 +123,8 @@ def _rank_players(players):
 # ---- API ----
 def compute_standings(payload:dict, auth_user:dict):
     """Compute and save player standings from all finished matches"""
-    if not auth_user or auth_user.get("role") != "admin":
-        return _resp(403, {"error":"Forbidden"})
+    if not auth_user:
+        return _resp(401, {"error":"Unauthorized"})
     category = (payload or {}).get("category")
     if category not in ("man","woman"):
         return _resp(400, {"error":"category must be man|woman"})
