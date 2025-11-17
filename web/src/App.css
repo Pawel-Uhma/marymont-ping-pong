@@ -104,6 +104,7 @@
 
 .login-logo {
   max-width: 100%;
+  width: 100%;
   height: auto;
   max-height: 400px;
   object-fit: contain;
@@ -887,12 +888,12 @@
   }
   
   .login-logo {
-    max-height: 100px;
-    padding: 6px;
+    max-height: 250px;
+    padding: 8px;
   }
   
   .login-logo-container {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     padding: 0 16px;
   }
   
@@ -1220,12 +1221,12 @@
   }
   
   .login-logo {
-    max-height: 80px;
-    padding: 4px;
+    max-height: 200px;
+    padding: 6px;
   }
   
   .login-logo-container {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     padding: 0 12px;
   }
   
