@@ -83,7 +83,7 @@
   box-shadow: 0 8px 32px var(--shadow);
   padding: 48px 40px;
   width: 100%;
-  max-width: 400px;
+  max-width: 800px;
   border: 1px solid var(--medium-gray);
   box-sizing: border-box;
   overflow-x: hidden;
@@ -106,7 +106,7 @@
   max-width: 100%;
   width: 100%;
   height: auto;
-  max-height: 400px;
+  max-height: 800px;
   object-fit: contain;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
