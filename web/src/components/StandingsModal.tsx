@@ -67,7 +67,9 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
   const getAllPlayersStandings = (): PlayerStanding[] => {
     const allPlayers = new Map<string, PlayerStanding>();
     
-    standings.forEach(group => {
+    standings
+      .filter(group => group.groupId !== 'nogroup')
+      .forEach(group => {
       group.table.forEach(player => {
         const existingPlayer = allPlayers.get(player.playerId);
         if (existingPlayer) {
@@ -133,7 +135,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
     } else {
       const group = standings.find(g => g.groupId === selectedGroupId);
       return {
-        title: `${selectedCategory === 'man' ? 'Mężczyźni' : 'Kobiety'} - ${selectedGroupId === 'nogroup' ? 'Brak Grupy' : `Grupa ${selectedGroupId}`}`,
+        title: `${selectedCategory === 'man' ? 'Mężczyźni' : 'Kobiety'} - Grupa ${selectedGroupId}`,
         standings: group ? group.table : []
       };
     }
@@ -209,14 +211,16 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                 >
                   Wszystkie Grupy
                 </button>
-                {standings.map((group) => (
+                {standings
+                  .filter(group => group.groupId !== 'nogroup')
+                  .map((group) => (
                   <button 
                     key={group.groupId}
                     className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
                     onClick={() => handleGroupChange(group.groupId)}
                     disabled={isLoading}
                   >
-                    {group.groupId === 'nogroup' ? 'Brak Grupy' : `Grupa ${group.groupId}`}
+                    Grupa {group.groupId}
                   </button>
                 ))}
               </div>

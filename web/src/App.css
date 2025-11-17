@@ -94,6 +94,31 @@
   margin-bottom: 32px;
 }
 
+.login-logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 0 20px;
+}
+
+.login-logo {
+  max-width: 100%;
+  height: auto;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  background: var(--white);
+  padding: 8px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.login-logo:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
 .login-title {
   font-size: 28px;
   font-weight: 600;
@@ -861,6 +886,16 @@
     font-size: 24px;
   }
   
+  .login-logo {
+    max-height: 100px;
+    padding: 6px;
+  }
+  
+  .login-logo-container {
+    margin-bottom: 20px;
+    padding: 0 16px;
+  }
+  
   .header-content {
     padding: 12px 16px;
     flex-direction: column;
@@ -1182,6 +1217,16 @@
   
   .login-title {
     font-size: 22px;
+  }
+  
+  .login-logo {
+    max-height: 80px;
+    padding: 4px;
+  }
+  
+  .login-logo-container {
+    margin-bottom: 16px;
+    padding: 0 12px;
   }
   
   .input-field {

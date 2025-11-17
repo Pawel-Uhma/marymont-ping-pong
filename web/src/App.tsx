@@ -646,7 +646,13 @@ function App() {
       <div className="login-container">
         <div className="login-card">
           <div className="login-header">
-            <h1 className="login-title">Marymont Ping Pong</h1>
+            <div className="login-logo-container">
+              <img 
+                src="/logo.jpg" 
+                alt="Marymoncki Turniej Pingonga" 
+                className="login-logo"
+              />
+            </div>
             <p className="login-subtitle">Zaloguj się do swojego konta</p>
           </div>
           
@@ -679,7 +685,7 @@ function App() {
           
           <div className="login-footer">
             <p className="demo-credentials">
-              Skontaktuj się z administratorem w celu dostępu do konta
+              Skontaktuj się z Dziubsonem w celu dostępu do konta
             </p>
           </div>
         </div>
