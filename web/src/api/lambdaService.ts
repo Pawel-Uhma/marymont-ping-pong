@@ -201,7 +201,7 @@ class LambdaService {
     name: string;
     surname: string;
     role: "admin" | "player";
-    playerId: number;
+    playerId?: number | null;
     category: "man" | "woman";
   }): Promise<LambdaResponse> {
     return this.request("accounts.create", account);
