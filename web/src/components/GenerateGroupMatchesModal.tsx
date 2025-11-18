@@ -253,7 +253,7 @@ export function GenerateGroupMatchesModal({ onMatchesGenerated, onClose }: Gener
                   return (
                     <div key={group.id} className="group-preview-item">
                       <div className="group-preview-header">
-                        <span className="group-name">Grupa {group.id}</span>
+                        <span className="group-name">Grupa {group.id}   </span>
                         <span className="group-stats">
                           {playersInGroup.length} gracz{playersInGroup.length !== 1 ? 'y' : ''} → {matchesInGroup} mecz{matchesInGroup !== 1 ? 'ów' : ''}
                         </span>

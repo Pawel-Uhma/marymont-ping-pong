@@ -194,7 +194,7 @@ def create_account(payload: dict, auth_user: dict):
     name = (payload or {}).get("name", "").strip()
     surname = (payload or {}).get("surname", "").strip()
     role = (payload or {}).get("role", "player").strip()
-    player_id = (payload or {}).get("playerId")
+    player_id = (payload or {}).get("playerId")  # Optional - will be auto-generated for player role
     category = (payload or {}).get("category", "man").strip()
     
     # Validation
@@ -218,6 +218,7 @@ def create_account(payload: dict, auth_user: dict):
         return _resp(409, {"error": "Username already exists"})
     
     # Auto-generate player ID for player role (always auto-generated, ignore any provided value)
+    # NOTE: playerId is NOT required for player role in create_account - it will be auto-generated
     if role == "player":
         # Always generate new player ID (admin cannot set custom ID)
         player_id = _new_player_id()

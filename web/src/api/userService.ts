@@ -104,15 +104,28 @@ class UserService {
   async createAccount(account: Account): Promise<boolean> {
     try {
       // playerId is optional - backend will auto-generate for player role
-      const response = await lambdaService.createAccount({
+      const payload: any = {
         username: account.username,
         password: account.password || "",
         name: account.name,
         surname: account.surname,
         role: account.role,
-        playerId: account.playerId || null,
         category: account.category,
-      });
+      };
+      
+      // For player role, backend will auto-generate playerId.
+      // However, some deployed backend versions may validate playerId before auto-generation.
+      // Send a placeholder value that will be ignored and replaced by auto-generated ID.
+      if (account.role === 'player' && (account.playerId == null || account.playerId === 0)) {
+        // Send placeholder - backend will auto-generate and replace this
+        // Using temporary placeholder that matches expected format (backend generates "p_xxxx")
+        // The backend code auto-generates playerId and ignores any provided value for player role
+        payload.playerId = "temp_placeholder";
+      } else if (account.playerId != null) {
+        payload.playerId = account.playerId;
+      }
+      
+      const response = await lambdaService.createAccount(payload);
       // Check for success message or account object in response
       return response.message === "Account created successfully" || !!response.account;
     } catch (error) {
