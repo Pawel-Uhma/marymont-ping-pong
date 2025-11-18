@@ -12,11 +12,9 @@ interface AddPlayerModalProps {
 export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initialCategory }: AddPlayerModalProps) {
   const [formData, setFormData] = useState({
     username: '',
-    password: '',
     name: '',
     surname: '',
     category: initialCategory || 'man' as Category,
-    playerId: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -61,20 +59,17 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
         setIsLoading(false);
         return;
       }
-
-      // Use custom player ID if provided, otherwise generate one
-      const customPlayerId = formData.playerId.trim() 
-        ? parseInt(formData.playerId.trim()) 
-        : Math.floor(Math.random() * 10000) + 1;
       
       // Create account directly (now includes player information)
+      // Password will default to 'marymont' on backend if not provided
+      // Player ID will be auto-generated on the backend
       const accountSuccess = await userService.createAccount({
         username: formData.username.trim(),
-        password: formData.password,
+        password: '', // Empty password - backend will set default to 'marymont'
         name: formData.name.trim(),
         surname: formData.surname.trim(),
         role: 'player',
-        playerId: customPlayerId,
+        playerId: null, // Backend will auto-generate
         category: formData.category,
       });
 
@@ -85,7 +80,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
       }
       
       // Reset form and close modal
-      setFormData({ username: '', password: '', name: '', surname: '', category: initialCategory || 'man' as Category, playerId: '' });
+      setFormData({ username: '', name: '', surname: '', category: initialCategory || 'man' as Category });
       onPlayerAdded();
       onClose();
     } catch (error) {
@@ -98,7 +93,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
 
   const handleClose = () => {
     if (!isLoading) {
-      setFormData({ username: '', password: '', name: '', surname: '', category: initialCategory || 'man' as Category, playerId: '' });
+      setFormData({ username: '', name: '', surname: '', category: initialCategory || 'man' as Category });
       setError('');
       onClose();
     }
@@ -149,20 +144,6 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
           </div>
 
           <div className="input-group">
-            <label htmlFor="password" className="input-label">Hasło</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              className="input-field"
-              placeholder="Wprowadź hasło (opcjonalne)"
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="input-group">
             <label htmlFor="name" className="input-label">Imię *</label>
             <input
               type="text"
@@ -190,23 +171,6 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
               required
               disabled={isLoading}
             />
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="playerId" className="input-label">ID Gracza</label>
-            <input
-              type="text"
-              id="playerId"
-              name="playerId"
-              value={formData.playerId}
-              onChange={handleInputChange}
-              className="input-field"
-              placeholder="Wprowadź niestandardowe ID gracza (opcjonalne)"
-              disabled={isLoading}
-            />
-            <small className="input-help">
-              Pozostaw puste, aby automatycznie wygenerować ID gracza
-            </small>
           </div>
 
           {error && <div className="error-message">{error}</div>}

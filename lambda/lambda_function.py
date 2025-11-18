@@ -112,6 +112,11 @@ def handler(event, context):
                 return _resp(401, {"error": "Unauthorized"})
             return auth.update_account(payload, auth_user)
 
+        if action == "accounts.changePassword":
+            if not auth_user:
+                return _resp(401, {"error": "Unauthorized"})
+            return auth.change_password(payload, auth_user)
+
         # --- Players (now handled through accounts) ---
         if action == "players.list":
             if not auth_user:

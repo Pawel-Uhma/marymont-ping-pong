@@ -103,15 +103,46 @@ def _save_accounts(accounts: dict):
         ContentType="application/json"
     )
 
+def _new_player_id() -> str:
+    """Generate a new unique player ID."""
+    return "p_" + base64.urlsafe_b64encode(os.urandom(4)).decode().rstrip("=")
+
+def _now_iso() -> str:
+    """Get current time in ISO format."""
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+def _p_players(category: str) -> str:
+    """Get path to players.json for a category."""
+    return f"data/{category}/players.json"
+
+def _put_json(key: str, data: dict):
+    """Save JSON data to S3."""
+    S3.put_object(
+        Bucket=DATA_BUCKET,
+        Key=key,
+        Body=json.dumps(data, separators=(",", ":"), ensure_ascii=False).encode("utf-8"),
+        ContentType="application/json",
+    )
+
 # --- Action: auth.login ---
 def login(payload: dict):
     username = (payload or {}).get("username", "").strip()
+    password = (payload or {}).get("password", "").strip()
+    
     if not username:
         return _resp(400, {"error": "username required"})
+    
+    if not password:
+        return _resp(400, {"error": "password required"})
 
     accounts = _load_accounts()
     user = next((u for u in accounts.get("users", []) if u.get("username") == username), None)
     if not user:
+        return _resp(401, {"error": "Invalid credentials"})
+    
+    # Verify password
+    user_password = user.get("password", "")
+    if user_password != password:
         return _resp(401, {"error": "Invalid credentials"})
 
     token = _sign_token({"sub": username, "role": user.get("role"), "playerId": user.get("playerId")})
@@ -159,7 +190,7 @@ def create_account(payload: dict, auth_user: dict):
         return _resp(403, {"error": "Admin access required"})
     
     username = (payload or {}).get("username", "").strip()
-    password = (payload or {}).get("password", "")  # Optional, can be empty
+    password = (payload or {}).get("password", "").strip()
     name = (payload or {}).get("name", "").strip()
     surname = (payload or {}).get("surname", "").strip()
     role = (payload or {}).get("role", "player").strip()
@@ -179,9 +210,6 @@ def create_account(payload: dict, auth_user: dict):
     if category not in ["man", "woman"]:
         return _resp(400, {"error": "category must be 'man' or 'woman'"})
     
-    if role == "player" and not player_id:
-        return _resp(400, {"error": "playerId required for player role"})
-    
     # Load existing accounts
     accounts = _load_accounts()
     
@@ -189,9 +217,35 @@ def create_account(payload: dict, auth_user: dict):
     if any(user.get("username") == username for user in accounts.get("users", [])):
         return _resp(409, {"error": "Username already exists"})
     
-    # Check if playerId already exists (for players)
-    if role == "player" and any(user.get("playerId") == player_id for user in accounts.get("users", [])):
-        return _resp(409, {"error": "Player ID already exists"})
+    # Auto-generate player ID for player role (always auto-generated, ignore any provided value)
+    if role == "player":
+        # Always generate new player ID (admin cannot set custom ID)
+        player_id = _new_player_id()
+        # Ensure uniqueness
+        while any(user.get("playerId") == player_id for user in accounts.get("users", [])):
+            player_id = _new_player_id()
+        
+        # Create player entry in players.json
+        players_file = _get_json(_p_players(category), {"players": [], "version": 1})
+        # Check if player with same name and surname already exists
+        if any(p.get("name", "").lower() == name.lower() and 
+               p.get("surname", "").lower() == surname.lower() 
+               for p in players_file.get("players", [])):
+            return _resp(409, {"error": "Player with this name already exists"})
+        
+        players_file["players"].append({
+            "id": player_id,
+            "name": name,
+            "surname": surname,
+            "category": category
+        })
+        players_file["updatedAt"] = _now_iso()
+        players_file["version"] = int(players_file.get("version", 0)) + 1
+        _put_json(_p_players(category), players_file)
+    
+    # Set default password to 'marymont' if not provided
+    if not password:
+        password = "marymont"
     
     # Create new user
     new_user = {
@@ -326,6 +380,48 @@ def update_account(payload: dict, auth_user: dict):
         "success": True,
         "message": f"Account '{username}' updated successfully",
         "account": updated_user
+    })
+
+# --- Action: accounts.changePassword ---
+def change_password(payload: dict, auth_user: dict):
+    """Change password for the authenticated user. Requires authentication."""
+    if not auth_user:
+        return _resp(401, {"error": "Unauthorized"})
+    
+    username = auth_user.get("sub")  # Get username from token
+    current_password = (payload or {}).get("currentPassword", "").strip()
+    new_password = (payload or {}).get("newPassword", "").strip()
+    
+    if not current_password:
+        return _resp(400, {"error": "currentPassword required"})
+    
+    if not new_password:
+        return _resp(400, {"error": "newPassword required"})
+    
+    if len(new_password) < 3:
+        return _resp(400, {"error": "newPassword must be at least 3 characters"})
+    
+    # Load existing accounts
+    accounts = _load_accounts()
+    
+    # Find the user
+    user = next((u for u in accounts.get("users", []) if u.get("username") == username), None)
+    if not user:
+        return _resp(404, {"error": "Account not found"})
+    
+    # Verify current password
+    if user.get("password", "") != current_password:
+        return _resp(401, {"error": "Invalid current password"})
+    
+    # Update password
+    user["password"] = new_password
+    
+    # Save to S3
+    _save_accounts(accounts)
+    
+    return _resp(200, {
+        "success": True,
+        "message": "Password changed successfully"
     })
 
 # --- Action: players.list ---

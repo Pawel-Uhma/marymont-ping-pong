@@ -214,6 +214,13 @@ class LambdaService {
   async deleteAccount(username: string): Promise<LambdaResponse> {
     return this.request("accounts.delete", { username });
   }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<LambdaResponse> {
+    return this.request("accounts.changePassword", {
+      currentPassword,
+      newPassword,
+    });
+  }
 }
 
 // Create singleton instance

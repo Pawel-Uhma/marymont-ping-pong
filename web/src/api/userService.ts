@@ -103,17 +103,14 @@ class UserService {
   // Create new account (admin only)
   async createAccount(account: Account): Promise<boolean> {
     try {
-      if (account.playerId === null) {
-        throw new Error('ID Gracza jest wymagane do utworzenia konta');
-      }
-      
+      // playerId is optional - backend will auto-generate for player role
       const response = await lambdaService.createAccount({
         username: account.username,
         password: account.password || "",
         name: account.name,
         surname: account.surname,
         role: account.role,
-        playerId: account.playerId,
+        playerId: account.playerId || null,
         category: account.category,
       });
       // Check for success message or account object in response
@@ -145,6 +142,42 @@ class UserService {
     } catch (error) {
       console.error('Delete account error:', error);
       return false;
+    }
+  }
+
+  // Change password (for authenticated users)
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!currentPassword || !newPassword) {
+        return {
+          success: false,
+          error: 'Obecne hasło i nowe hasło są wymagane',
+        };
+      }
+
+      if (newPassword.length < 3) {
+        return {
+          success: false,
+          error: 'Nowe hasło musi mieć co najmniej 3 znaki',
+        };
+      }
+
+      const response = await lambdaService.changePassword(currentPassword, newPassword);
+      
+      if (response.success || response.message?.includes("successfully")) {
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          error: response.error || 'Nie udało się zmienić hasła',
+        };
+      }
+    } catch (error: any) {
+      console.error('Change password error:', error);
+      return {
+        success: false,
+        error: error.message || 'Wystąpił błąd podczas zmiany hasła',
+      };
     }
   }
 }

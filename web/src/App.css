@@ -278,6 +278,24 @@
   color: var(--white);
 }
 
+.change-password-btn {
+  background: var(--blue);
+  color: var(--white);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.change-password-btn:hover {
+  background: #1a7fd9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(30, 144, 255, 0.3);
+}
+
 .logout-btn {
   background: var(--black);
   color: var(--white);
@@ -3708,6 +3726,17 @@ input[type="date"]:valid:before {
 
 .reset-groups-btn {
   background: var(--red);
+  color: var(--white);
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.generate-matches-btn {
+  background: var(--blue);
   color: var(--white);
   border: none;
   padding: 10px 16px;

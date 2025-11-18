@@ -9,6 +9,7 @@ import { MatchCreator } from './components/MatchCreator'
 import { EditScoreModal } from './components/EditScoreModal'
 import { MyMatchesModal } from './components/MyMatchesModal'
 import { StandingsModal } from './components/StandingsModal'
+import { ChangePasswordModal } from './components/ChangePasswordModal'
 
 interface User {
   username: string;
@@ -43,6 +44,7 @@ function App() {
   const [selectedMatchForScore, setSelectedMatchForScore] = useState<GroupMatch | EliminationMatch | null>(null)
   const [showMyMatchesModal, setShowMyMatchesModal] = useState(false)
   const [showStandingsModal, setShowStandingsModal] = useState(false)
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
 
   // Helper function to get user's category
   const getUserCategory = async (playerId: string | null): Promise<Category> => {
@@ -83,7 +85,7 @@ function App() {
           }
           setUser(userWithCategory)
           setIsLoggedIn(true)
-          setCredentials({ username: '' })
+          setCredentials({ username: '', password: '' })
           
           // Load dashboard data after successful login
           loadDashboardData()
@@ -92,7 +94,7 @@ function App() {
           // Still login but without category
           setUser(response.user)
           setIsLoggedIn(true)
-          setCredentials({ username: '' })
+          setCredentials({ username: '', password: '' })
           loadDashboardData()
         }
       } else {
@@ -109,7 +111,7 @@ function App() {
   const handleLogout = () => {
     setIsLoggedIn(false)
     setUser(null)
-    setCredentials({ username: '' })
+    setCredentials({ username: '', password: '' })
     setError('')
   }
 
@@ -260,6 +262,9 @@ function App() {
                   {user?.role === 'admin' ? 'Administrator' : 'Gracz'}
                 </span>
               </div>
+              <button onClick={() => setShowChangePasswordModal(true)} className="change-password-btn">
+                Zmień Hasło
+              </button>
               <button onClick={handleLogout} className="logout-btn">
                 Wyloguj
               </button>
@@ -636,6 +641,12 @@ function App() {
             players={players}
           />
         )}
+
+        {/* Change Password Modal */}
+        <ChangePasswordModal
+          isOpen={showChangePasswordModal}
+          onClose={() => setShowChangePasswordModal(false)}
+        />
       </div>
     )
   }
@@ -667,6 +678,21 @@ function App() {
                 onChange={handleInputChange}
                 className="input-field"
                 placeholder="Wprowadź nazwę użytkownika"
+                required
+                disabled={isLoading}
+              />
+            </div>
+            
+            <div className="input-group">
+              <label htmlFor="password" className="input-label">Hasło</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={credentials.password || ''}
+                onChange={handleInputChange}
+                className="input-field"
+                placeholder="Wprowadź hasło"
                 required
                 disabled={isLoading}
               />

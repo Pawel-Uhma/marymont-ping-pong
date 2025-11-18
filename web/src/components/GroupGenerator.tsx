@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { dataService } from '../api';
 import type { Player, Category, Group } from '../api/types';
+import { GenerateGroupMatchesModal } from './GenerateGroupMatchesModal';
 
 interface GroupGeneratorProps {
   onGroupsUpdated: () => void;
@@ -15,6 +16,7 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showGenerateMatchesModal, setShowGenerateMatchesModal] = useState(false);
 
   // Load data when category changes
   useEffect(() => {
@@ -262,6 +264,14 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
           >
             {isSaving ? 'Resetowanie...' : 'Resetuj i Utwórz Grupy'}
           </button>
+          
+          <button 
+            className="generate-matches-btn"
+            onClick={() => setShowGenerateMatchesModal(true)}
+            disabled={isSaving}
+          >
+            Wygeneruj mecze dla grup
+          </button>
         </div>
       </div>
 
@@ -343,6 +353,16 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
           {isSaving ? 'Zapisywanie...' : 'Zapisz Grupy'}
         </button>
       </div>
+
+      {/* Generate Matches Modal */}
+      {showGenerateMatchesModal && (
+        <GenerateGroupMatchesModal
+          onMatchesGenerated={() => {
+            onGroupsUpdated();
+          }}
+          onClose={() => setShowGenerateMatchesModal(false)}
+        />
+      )}
     </div>
   );
 }
