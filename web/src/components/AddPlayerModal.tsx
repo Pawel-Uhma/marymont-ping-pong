@@ -69,7 +69,7 @@ export function AddPlayerModal({ isOpen, onClose, onPlayerAdded, category: initi
         name: formData.name.trim(),
         surname: formData.surname.trim(),
         role: 'player',
-        // Don't include playerId - backend will auto-generate it
+        playerId: null, // Backend will auto-generate playerId
         category: formData.category,
       });
 

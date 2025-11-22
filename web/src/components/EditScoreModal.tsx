@@ -273,6 +273,8 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
                         max="50"
                         value={score.p1}
                         onChange={(e) => handleScoreChange(index, 'p1', e.target.value)}
+                        onFocus={(e) => setTimeout(() => e.target.select(), 0)}
+                        onClick={(e) => (e.target as HTMLInputElement).select()}
                         className="score-input"
                         disabled={isLoading}
                       />
@@ -286,6 +288,8 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
                         max="50"
                         value={score.p2}
                         onChange={(e) => handleScoreChange(index, 'p2', e.target.value)}
+                        onFocus={(e) => setTimeout(() => e.target.select(), 0)}
+                        onClick={(e) => (e.target as HTMLInputElement).select()}
                         className="score-input"
                         disabled={isLoading}
                       />
