@@ -280,7 +280,7 @@ function App() {
                 <h3>Twój Następny Mecz</h3>
                 {nextMatch?.scheduledAt && (
                   <span className="match-time">
-                    {new Date(nextMatch.scheduledAt).toLocaleDateString()}, {new Date(nextMatch.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    {new Date(nextMatch.scheduledAt).toLocaleDateString()}
                   </span>
                 )}
               </div>
@@ -374,7 +374,7 @@ function App() {
                   upcomingMatches.map((match) => (
                     <div key={match.id} className="match-item">
                       <span className="time">
-                        {match.scheduledAt ? new Date(match.scheduledAt).toLocaleDateString() + ' ' + new Date(match.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'TBD'}
+                        {match.scheduledAt ? new Date(match.scheduledAt).toLocaleDateString() : 'TBD'}
                       </span>
                       <span className="players">
                         {getPlayerName(match.p1)} vs {getPlayerName(match.p2)}

@@ -58,10 +58,15 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
     return match.winner === userId;
   };
 
-  // Check if match is in the past
+  // Check if match is in the past (compare dates only, ignoring time)
   const isPastMatch = (match: GroupMatch | EliminationMatch): boolean => {
     if (!match.scheduledAt) return false;
-    return new Date(match.scheduledAt) < new Date();
+    // Normalize to date-only for comparison (works with both date-only and datetime formats)
+    const matchDate = new Date(match.scheduledAt);
+    const today = new Date();
+    matchDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return matchDate < today;
   };
 
   // Get match status color
@@ -105,11 +110,12 @@ export function MyMatchesModal({ isOpen, onClose, onMatchEdited, userId, categor
     }
   };
 
-  // Format date
+  // Format date (date only, no time)
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return 'TBD';
+    // Parse date - works with both date-only (YYYY-MM-DD) and datetime formats
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    return date.toLocaleDateString();
   };
 
   // Get match sets summary

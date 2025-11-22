@@ -345,12 +345,26 @@ class DataService {
         ...womanElimMatches
       ];
 
-      const now = new Date();
+      // Normalize today to midnight for date-only comparison (works with both date-only and datetime formats)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       
       return allMatches
         .filter(m => m.status === 'scheduled' && m.scheduledAt)
-        .filter(m => new Date(m.scheduledAt!) > now)
-        .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime());
+        .filter(m => {
+          // Normalize match date to midnight for date-only comparison
+          const matchDate = new Date(m.scheduledAt!);
+          matchDate.setHours(0, 0, 0, 0);
+          return matchDate >= today;
+        })
+        .sort((a, b) => {
+          // Normalize dates for comparison
+          const dateA = new Date(a.scheduledAt!);
+          const dateB = new Date(b.scheduledAt!);
+          dateA.setHours(0, 0, 0, 0);
+          dateB.setHours(0, 0, 0, 0);
+          return dateA.getTime() - dateB.getTime();
+        });
     } catch (error) {
       console.error('Get upcoming matches error:', error);
       return [];
@@ -359,9 +373,26 @@ class DataService {
 
   async getNextMatchForPlayer(category: Category, playerId: string): Promise<(GroupMatch | EliminationMatch) | null> {
     const matches = await this.getMatchesForPlayer(category, playerId);
+    // Normalize today to midnight for date-only comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const upcomingMatches = matches
       .filter(m => m.status === 'scheduled' && m.scheduledAt)
-      .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime());
+      .filter(m => {
+        // Normalize match date to midnight for date-only comparison
+        const matchDate = new Date(m.scheduledAt!);
+        matchDate.setHours(0, 0, 0, 0);
+        return matchDate >= today;
+      })
+      .sort((a, b) => {
+        // Normalize dates for comparison
+        const dateA = new Date(a.scheduledAt!);
+        const dateB = new Date(b.scheduledAt!);
+        dateA.setHours(0, 0, 0, 0);
+        dateB.setHours(0, 0, 0, 0);
+        return dateA.getTime() - dateB.getTime();
+      });
 
     return upcomingMatches[0] || null;
   }
