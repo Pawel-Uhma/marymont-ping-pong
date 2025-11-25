@@ -212,6 +212,7 @@
   background: var(--white);
   border-bottom: 2px solid var(--black);
   box-shadow: 0 2px 8px var(--shadow);
+  overflow: visible;
 }
 
 .header-content {
@@ -306,6 +307,65 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.header-content-centered {
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  overflow: visible;
+}
+
+.header-content-centered .logo-section {
+  width: 100%;
+  justify-content: center;
+}
+
+.login-button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.login-btn-header {
+  background: var(--black);
+  color: var(--white);
+  border: none;
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 180px;
+}
+
+.login-btn-header:hover {
+  background: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.back-to-standings-btn {
+  background: var(--medium-gray);
+  color: var(--black);
+  border: 2px solid var(--black);
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 24px;
+  width: 100%;
+}
+
+.back-to-standings-btn:hover {
+  background: var(--light-gray);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .logout-btn:hover {
@@ -784,6 +844,14 @@
   overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;
+}
+
+.login-modal {
+  max-width: 600px;
+}
+
+.login-modal .modal-body {
+  padding: 24px;
 }
 
 .modal-header {

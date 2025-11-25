@@ -33,7 +33,7 @@ function App() {
   const [standings, setStandings] = useState<GroupStanding[]>([])
   const [bracket, setBracket] = useState<any>(null)
   const [standingsCategory, setStandingsCategory] = useState<Category>('man')
-  const [selectedGroupId, setSelectedGroupId] = useState<string>('')
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('all')
   
   // Modal states
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false)
@@ -45,6 +45,7 @@ function App() {
   const [showMyMatchesModal, setShowMyMatchesModal] = useState(false)
   const [showStandingsModal, setShowStandingsModal] = useState(false)
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
 
   // Helper function to get user's category
   const getUserCategory = async (playerId: string | null): Promise<Category> => {
@@ -86,6 +87,8 @@ function App() {
           setUser(userWithCategory)
           setIsLoggedIn(true)
           setCredentials({ username: '', password: '' })
+          setShowLoginModal(false)
+          setError('')
           
           // Load dashboard data after successful login
           loadDashboardData()
@@ -95,6 +98,8 @@ function App() {
           setUser(response.user)
           setIsLoggedIn(true)
           setCredentials({ username: '', password: '' })
+          setShowLoginModal(false)
+          setError('')
           loadDashboardData()
         }
       } else {
@@ -144,25 +149,96 @@ function App() {
   // Handle standings category change
   const handleStandingsCategoryChange = async (category: Category) => {
     setStandingsCategory(category)
-    try {
-      const standingsData = await dataService.getStandings(category)
-      setStandings(standingsData)
-      
-      // Set the first group as selected
-      if (standingsData.length > 0) {
-        setSelectedGroupId(standingsData[0].groupId)
-      } else {
-        setSelectedGroupId('')
-      }
-    } catch (error) {
-      console.error('Error loading standings:', error)
-    }
+    setSelectedGroupId('all') // Reset to 'all' when category changes
+    await loadStandingsData(category)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setCredentials(prev => ({ ...prev, [name]: value }))
     setError('') // Clear error when user types
+  }
+
+  // Get all players from all groups combined
+  const getAllPlayersStandings = (): PlayerStanding[] => {
+    const allPlayers = new Map<string, PlayerStanding>();
+    
+    standings
+      .forEach(group => {
+        group.table.forEach(player => {
+          const existingPlayer = allPlayers.get(player.playerId);
+          if (existingPlayer) {
+            // Combine stats
+            existingPlayer.wins += player.wins;
+            existingPlayer.losses += player.losses;
+            existingPlayer.setsWon = (existingPlayer.setsWon || 0) + (player.setsWon || 0);
+            existingPlayer.setsLost = (existingPlayer.setsLost || 0) + (player.setsLost || 0);
+            existingPlayer.pointsWon = (existingPlayer.pointsWon || 0) + (player.pointsWon || 0);
+            existingPlayer.pointsLost = (existingPlayer.pointsLost || 0) + (player.pointsLost || 0);
+            // Recalculate differences
+            existingPlayer.setDifference = existingPlayer.setsWon - existingPlayer.setsLost;
+            existingPlayer.pointDifference = existingPlayer.pointsWon - existingPlayer.pointsLost;
+            // Recalculate win percentage
+            const totalMatches = existingPlayer.wins + existingPlayer.losses;
+            existingPlayer.winPercentage = totalMatches > 0 ? (existingPlayer.wins / totalMatches) * 100 : 0;
+            // Update legacy fields for backward compatibility
+            existingPlayer.setsFor = existingPlayer.setsWon;
+            existingPlayer.setsAgainst = existingPlayer.setsLost;
+            existingPlayer.pointsFor = existingPlayer.pointsWon;
+            existingPlayer.pointsAgainst = existingPlayer.pointsLost;
+          } else {
+            // Add new player with legacy field mapping
+            allPlayers.set(player.playerId, { 
+              ...player,
+              setsFor: player.setsWon || player.setsFor || 0,
+              setsAgainst: player.setsLost || player.setsAgainst || 0,
+              pointsFor: player.pointsWon || player.pointsFor || 0,
+              pointsAgainst: player.pointsLost || player.pointsAgainst || 0,
+              setsWon: player.setsWon || player.setsFor || 0,
+              setsLost: player.setsLost || player.setsAgainst || 0,
+              pointsWon: player.pointsWon || player.pointsFor || 0,
+              pointsLost: player.pointsLost || player.pointsAgainst || 0
+            });
+          }
+        });
+      });
+
+    // Convert to array and sort
+    const combinedPlayers = Array.from(allPlayers.values());
+    return combinedPlayers.sort((a, b) => {
+      // Primary: Win record
+      const aRecord = a.wins - a.losses;
+      const bRecord = b.wins - b.losses;
+      if (aRecord !== bRecord) return bRecord - aRecord;
+      
+      // Secondary: Sets difference
+      const aSetDiff = (a.setsFor || 0) - (a.setsAgainst || 0);
+      const bSetDiff = (b.setsFor || 0) - (b.setsAgainst || 0);
+      if (aSetDiff !== bSetDiff) return bSetDiff - aSetDiff;
+      
+      // Tertiary: Points difference
+      const aPointDiff = (a.pointsFor || 0) - (a.pointsAgainst || 0);
+      const bPointDiff = (b.pointsFor || 0) - (b.pointsAgainst || 0);
+      return bPointDiff - aPointDiff;
+    }).map((player, index) => ({
+      ...player,
+      rank: index + 1
+    }));
+  };
+
+  // Load standings data (available for both logged in and logged out users)
+  const loadStandingsData = async (category: Category) => {
+    try {
+      const standingsData = await dataService.getStandings(category)
+      setStandings(standingsData)
+      
+      // Set 'all' as selected if no group is selected or if selectedGroupId is invalid
+      if (standingsData.length > 0 && (!selectedGroupId || selectedGroupId === '')) {
+        setSelectedGroupId('all')
+      }
+    } catch (error) {
+      console.error('Error loading standings data:', error)
+    }
   }
 
   // Load dashboard data
@@ -196,13 +272,7 @@ function App() {
       setUpcomingMatches(upcomingMatchesData)
 
       // Load standings
-      const standingsData = await dataService.getStandings(standingsCategory)
-      setStandings(standingsData)
-      
-      // Set the first group as selected if no group is selected
-      if (standingsData.length > 0 && !selectedGroupId) {
-        setSelectedGroupId(standingsData[0].groupId)
-      }
+      await loadStandingsData(standingsCategory)
 
       // Load bracket
       if (user.category) {
@@ -214,12 +284,25 @@ function App() {
     }
   }
 
+  // Load standings on initial mount (even when not logged in)
+  useEffect(() => {
+    loadStandingsData(standingsCategory)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Load data when user logs in or category changes
   useEffect(() => {
     if (isLoggedIn && user) {
       loadDashboardData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, user])
+
+  // Load standings when category changes
+  useEffect(() => {
+    loadStandingsData(standingsCategory)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [standingsCategory])
 
   // Helper functions
   const getPlayerName = (playerId: string): string => {
@@ -439,49 +522,88 @@ function App() {
                 </div>
                 {standings.length > 0 && (
                   <div className="group-tabs">
-                    {standings.map((group) => (
-                      <button 
-                        key={group.groupId}
-                        className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
-                        onClick={() => setSelectedGroupId(group.groupId)}
-                      >
-                        Grupa {group.groupId}
-                      </button>
-                    ))}
+                    <button 
+                      className={`group-tab ${selectedGroupId === 'all' ? 'active' : ''}`}
+                      onClick={() => setSelectedGroupId('all')}
+                    >
+                      Wszyscy
+                    </button>
+                    {standings
+                      .filter(group => group.groupId !== 'nogroup')
+                      .map((group) => (
+                        <button 
+                          key={group.groupId}
+                          className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
+                          onClick={() => setSelectedGroupId(group.groupId)}
+                        >
+                          Grupa {group.groupId}
+                        </button>
+                      ))}
                   </div>
                 )}
               </div>
               <div className="standings-table">
                 {standings.length > 0 && selectedGroupId ? (
                   (() => {
-                    const selectedGroup = standings.find(group => group.groupId === selectedGroupId);
-                    return selectedGroup ? (
-                      <div key={selectedGroup.groupId} className="group-standings-table">
-                        <h4>Grupa {selectedGroup.groupId}</h4>
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Miejsce</th>
-                              <th>Gracz</th>
-                              <th>W-P</th>
-                              <th>Sety +/-</th>
-                              <th>Punkty +/-</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selectedGroup.table.map((player: PlayerStanding) => (
-                              <tr key={player.playerId}>
-                                <td>{player.rank}</td>
-                                <td>{getPlayerName(player.playerId)}</td>
-                                <td>{player.wins}-{player.losses}</td>
-                                <td>{(player.setsFor || 0) - (player.setsAgainst || 0) > 0 ? '+' : ''}{(player.setsFor || 0) - (player.setsAgainst || 0)}</td>
-                                <td>{(player.pointsFor || 0) - (player.pointsAgainst || 0) > 0 ? '+' : ''}{(player.pointsFor || 0) - (player.pointsAgainst || 0)}</td>
+                    if (selectedGroupId === 'all') {
+                      const allPlayers = getAllPlayersStandings();
+                      return (
+                        <div key="all" className="group-standings-table">
+                          <h4>Wszystkie Grupy</h4>
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Miejsce</th>
+                                <th>Gracz</th>
+                                <th>W-P</th>
+                                <th>Sety +/-</th>
+                                <th>Punkty +/-</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : null;
+                            </thead>
+                            <tbody>
+                              {allPlayers.map((player: PlayerStanding) => (
+                                <tr key={player.playerId}>
+                                  <td>{player.rank}</td>
+                                  <td>{getPlayerName(player.playerId)}</td>
+                                  <td>{player.wins}-{player.losses}</td>
+                                  <td>{(player.setsFor || 0) - (player.setsAgainst || 0) > 0 ? '+' : ''}{(player.setsFor || 0) - (player.setsAgainst || 0)}</td>
+                                  <td>{(player.pointsFor || 0) - (player.pointsAgainst || 0) > 0 ? '+' : ''}{(player.pointsFor || 0) - (player.pointsAgainst || 0)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    } else {
+                      const selectedGroup = standings.find(group => group.groupId === selectedGroupId);
+                      return selectedGroup ? (
+                        <div key={selectedGroup.groupId} className="group-standings-table">
+                          <h4>Grupa {selectedGroup.groupId}</h4>
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Miejsce</th>
+                                <th>Gracz</th>
+                                <th>W-P</th>
+                                <th>Sety +/-</th>
+                                <th>Punkty +/-</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedGroup.table.map((player: PlayerStanding) => (
+                                <tr key={player.playerId}>
+                                  <td>{player.rank}</td>
+                                  <td>{getPlayerName(player.playerId)}</td>
+                                  <td>{player.wins}-{player.losses}</td>
+                                  <td>{(player.setsFor || 0) - (player.setsAgainst || 0) > 0 ? '+' : ''}{(player.setsFor || 0) - (player.setsAgainst || 0)}</td>
+                                  <td>{(player.pointsFor || 0) - (player.pointsAgainst || 0) > 0 ? '+' : ''}{(player.pointsFor || 0) - (player.pointsAgainst || 0)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : null;
+                    }
                   })()
                 ) : (
                   <div className="no-standings">
@@ -652,70 +774,237 @@ function App() {
   }
 
 
-  return (
-    <div className="app">
-      <div className="login-container">
-        <div className="login-card">
-          <div className="login-header">
-            <div className="login-logo-container">
-              <img 
-                src="/logo.jpg" 
-                alt="Marymoncki Turniej Pingonga" 
-                className="login-logo"
-              />
-            </div>
-            <p className="login-subtitle">Zaloguj się do swojego konta</p>
-          </div>
-          
-          <form onSubmit={handleLogin} className="login-form">
-            <div className="input-group">
-              <label htmlFor="username" className="input-label">Nazwa użytkownika</label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                value={credentials.username}
-                onChange={handleInputChange}
-                className="input-field"
-                placeholder="Wprowadź nazwę użytkownika"
-                required
-                disabled={isLoading}
-              />
+  // Show login screen if login modal is open
+  if (showLoginModal) {
+    return (
+      <div className="app">
+        <div className="login-container">
+          <div className="login-card">
+            <div className="login-header">
+              <div className="login-logo-container">
+                <img 
+                  src="/logo.jpg" 
+                  alt="Marymoncki Turniej Pingonga" 
+                  className="login-logo"
+                />
+              </div>
+              <p className="login-subtitle">Zaloguj się do swojego konta</p>
             </div>
             
-            <div className="input-group">
-              <label htmlFor="password" className="input-label">Hasło</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={credentials.password || ''}
-                onChange={handleInputChange}
-                className="input-field"
-                placeholder="Wprowadź hasło"
-                required
+            <form onSubmit={handleLogin} className="login-form">
+              <div className="input-group">
+                <label htmlFor="username" className="input-label">Nazwa użytkownika</label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={credentials.username}
+                  onChange={handleInputChange}
+                  className="input-field"
+                  placeholder="Wprowadź nazwę użytkownika"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <div className="input-group">
+                <label htmlFor="password" className="input-label">Hasło</label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={credentials.password || ''}
+                  onChange={handleInputChange}
+                  className="input-field"
+                  placeholder="Wprowadź hasło"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              
+              {error && <div className="error-message">{error}</div>}
+              
+              <button 
+                type="submit" 
+                className="login-btn"
                 disabled={isLoading}
-              />
-            </div>
+              >
+                {isLoading ? 'Logowanie...' : 'Zaloguj'}
+              </button>
+            </form>
             
-            {error && <div className="error-message">{error}</div>}
+            <div className="login-footer">
+              <p className="demo-credentials">
+                Skontaktuj się z Dziubsonem w celu dostępu do konta
+              </p>
+            </div>
             
             <button 
-              type="submit" 
-              className="login-btn"
-              disabled={isLoading}
+              onClick={() => {
+                setShowLoginModal(false)
+                setError('')
+              }}
+              className="back-to-standings-btn"
             >
-              {isLoading ? 'Logowanie...' : 'Zaloguj'}
-        </button>
-          </form>
-          
-          <div className="login-footer">
-            <p className="demo-credentials">
-              Skontaktuj się z Dziubsonem w celu dostępu do konta
-            </p>
+              ← Wróć do klasyfikacji
+            </button>
           </div>
         </div>
       </div>
+    )
+  }
+
+  // Unlogged user view - show standings with login button
+  return (
+    <div className="app">
+      <header className="header">
+        <div className="header-content header-content-centered">
+          <div className="logo-section">
+            <div className="target-icon">🎯</div>
+            <h1 className="logo">Marymont Ping Pong</h1>
+          </div>
+          <div className="login-button-container">
+            <button 
+              onClick={() => setShowLoginModal(true)} 
+              className="login-btn-header"
+            >
+              Zaloguj się
+            </button>
+          </div>
+        </div>
+      </header>
+      
+      <main className="main-content">
+        {/* Standings Section */}
+        <div className="bottom-section">
+          <div className="group-standings">
+            <div className="section-header">
+              <h3>Klasyfikacja Grup</h3>
+              <div className="tabs">
+                <button 
+                  className={`tab ${standingsCategory === 'man' ? 'active' : ''}`}
+                  onClick={() => handleStandingsCategoryChange('man')}
+                >
+                  Mężczyźni
+                </button>
+                <button 
+                  className={`tab ${standingsCategory === 'woman' ? 'active' : ''}`}
+                  onClick={() => handleStandingsCategoryChange('woman')}
+                >
+                  Kobiety
+                </button>
+              </div>
+              {standings.length > 0 && (
+                <div className="group-tabs">
+                  <button 
+                    className={`group-tab ${selectedGroupId === 'all' ? 'active' : ''}`}
+                    onClick={() => setSelectedGroupId('all')}
+                  >
+                    Wszyscy
+                  </button>
+                  {standings
+                    .filter(group => group.groupId !== 'nogroup')
+                    .map((group) => (
+                      <button 
+                        key={group.groupId}
+                        className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
+                        onClick={() => setSelectedGroupId(group.groupId)}
+                      >
+                        Grupa {group.groupId}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+            <div className="standings-table">
+              {standings.length > 0 && selectedGroupId ? (
+                (() => {
+                  if (selectedGroupId === 'all') {
+                    const allPlayers = getAllPlayersStandings();
+                    return (
+                      <div key="all" className="group-standings-table">
+                        <h4>Wszystkie Grupy</h4>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Miejsce</th>
+                              <th>Gracz</th>
+                              <th>W-P</th>
+                              <th>Sety +/-</th>
+                              <th>Punkty +/-</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allPlayers.map((player: PlayerStanding) => (
+                              <tr key={player.playerId}>
+                                <td>{player.rank}</td>
+                                <td>
+                                  {player.name && player.surname 
+                                    ? `${player.name} ${player.surname}`
+                                    : getPlayerName(player.playerId)}
+                                </td>
+                                <td>{player.wins}-{player.losses}</td>
+                                <td>{(player.setsFor || 0) - (player.setsAgainst || 0) > 0 ? '+' : ''}{(player.setsFor || 0) - (player.setsAgainst || 0)}</td>
+                                <td>{(player.pointsFor || 0) - (player.pointsAgainst || 0) > 0 ? '+' : ''}{(player.pointsFor || 0) - (player.pointsAgainst || 0)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  } else {
+                    const selectedGroup = standings.find(group => group.groupId === selectedGroupId);
+                    return selectedGroup ? (
+                      <div key={selectedGroup.groupId} className="group-standings-table">
+                        <h4>Grupa {selectedGroup.groupId}</h4>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Miejsce</th>
+                              <th>Gracz</th>
+                              <th>W-P</th>
+                              <th>Sety +/-</th>
+                              <th>Punkty +/-</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedGroup.table.map((player: PlayerStanding) => (
+                              <tr key={player.playerId}>
+                                <td>{player.rank}</td>
+                                <td>
+                                  {player.name && player.surname 
+                                    ? `${player.name} ${player.surname}`
+                                    : getPlayerName(player.playerId)}
+                                </td>
+                                <td>{player.wins}-{player.losses}</td>
+                                <td>{(player.setsFor || 0) - (player.setsAgainst || 0) > 0 ? '+' : ''}{(player.setsFor || 0) - (player.setsAgainst || 0)}</td>
+                                <td>{(player.pointsFor || 0) - (player.pointsAgainst || 0) > 0 ? '+' : ''}{(player.pointsFor || 0) - (player.pointsAgainst || 0)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : null;
+                  }
+                })()
+              ) : (
+                <div className="no-standings">
+                  <p>Brak dostępnej klasyfikacji</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+      
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-content">
+          <div className="footer-info">
+            <span className="footer-text">© 2025 Marymont Ping Pong</span>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

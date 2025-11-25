@@ -68,7 +68,6 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
     const allPlayers = new Map<string, PlayerStanding>();
     
     standings
-      .filter(group => group.groupId !== 'nogroup')
       .forEach(group => {
       group.table.forEach(player => {
         const existingPlayer = allPlayers.get(player.playerId);
