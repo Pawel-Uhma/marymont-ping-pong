@@ -1,14 +1,13 @@
 import { lambdaService } from './lambdaService';
-import type { 
-  Account,
-  Player, 
-  Group, 
-  GroupMatch, 
-  EliminationMatch, 
-  GroupStanding, 
+import type {
+  Player,
+  Group,
+  GroupMatch,
+  EliminationMatch,
+  GroupStanding,
   PlayerStanding,
-  BracketData, 
-  Category 
+  BracketData,
+  Category
 } from './types';
 
 class DataService {
@@ -18,7 +17,7 @@ class DataService {
       // Use players.list endpoint which only requires authentication (not admin)
       const response = await lambdaService.listPlayers(category);
       const playersData = response.players || [];
-      
+
       // Convert to Player format
       const players = playersData.map((player: any) => ({
         id: player.id || player.playerId,
@@ -202,12 +201,12 @@ class DataService {
   async getStandings(category: Category): Promise<GroupStanding[]> {
     try {
       const response = await lambdaService.getStandings(category);
-      
+
       // Handle new API structure with direct players array
       if (response.players) {
         // Group players by their group
         const playersByGroup = new Map<string, PlayerStanding[]>();
-        
+
         response.players.forEach((player: PlayerStanding) => {
           const groupKey = player.group || 'No Group';
           if (!playersByGroup.has(groupKey)) {
@@ -222,7 +221,7 @@ class DataService {
             pointsAgainst: player.pointsLost
           });
         });
-        
+
         // Convert to GroupStanding format
         const groups: GroupStanding[] = [];
         playersByGroup.forEach((players, groupId) => {
@@ -231,10 +230,10 @@ class DataService {
             table: players.sort((a, b) => a.rank - b.rank)
           });
         });
-        
+
         return groups;
       }
-      
+
       // Fallback to legacy structure
       return response.groups || [];
     } catch (error) {
@@ -318,7 +317,7 @@ class DataService {
     ]);
 
     const today = new Date().toISOString().split('T')[0];
-    
+
     return [
       ...groupMatches.filter(m => m.scheduledAt?.startsWith(today)),
       ...eliminationMatches.filter(m => m.scheduledAt?.startsWith(today))
@@ -346,7 +345,7 @@ class DataService {
       // Normalize today to midnight for date-only comparison (works with both date-only and datetime formats)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       return allMatches
         .filter(m => m.status === 'scheduled' && m.scheduledAt)
         .filter(m => {
@@ -374,7 +373,7 @@ class DataService {
     // Normalize today to midnight for date-only comparison
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const upcomingMatches = matches
       .filter(m => m.status === 'scheduled' && m.scheduledAt)
       .filter(m => {
