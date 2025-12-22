@@ -15,19 +15,17 @@ class DataService {
   // Players (now derived from accounts)
   async getPlayers(category: Category): Promise<Player[]> {
     try {
-      const response = await lambdaService.listAccounts(category);
-      const accounts = response.accounts || response.users || [];
+      // Use players.list endpoint which only requires authentication (not admin)
+      const response = await lambdaService.listPlayers(category);
+      const playersData = response.players || [];
       
-      // Convert accounts to players format for backward compatibility
-      // Include both 'player' and 'admin' roles since all admins are also players
-      const players = accounts
-        .filter((account: Account) => account.role === 'player' || account.role === 'admin')
-        .map((account: Account) => ({
-          id: account.playerId ? account.playerId.toString() : account.username,
-          name: account.name,
-          surname: account.surname,
-          category: account.category,
-        }));
+      // Convert to Player format
+      const players = playersData.map((player: any) => ({
+        id: player.id || player.playerId,
+        name: player.name,
+        surname: player.surname,
+        category: player.category,
+      }));
       return players;
     } catch (error) {
       console.error(`Get players error for ${category}:`, error);

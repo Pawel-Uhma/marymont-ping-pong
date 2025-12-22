@@ -1,11 +1,3 @@
-# auth.py — authentication module for Lambda (Python 3.11)
-# - Plaintext passwords (as requested)
-# - Minimal HMAC-signed token (not real JWT, but "JWT-like")
-# - Reads S3: data/accounts.json (fallback to accounts.json)
-# Exposes:
-#   - login(payload) -> HTTP response dict
-#   - verify_from_header(headers) -> dict | None
-
 import os
 import json
 import time
@@ -438,16 +430,20 @@ def list_players(payload: dict, auth_user: dict):
     accounts = _load_accounts()
     
     # Filter for player accounts in the specified category
+    # Include both 'player' and 'admin' roles since admins can also be players
     player_accounts = []
     for user in accounts.get("users", []):
-        if user.get("role") == "player" and user.get("category") == category:
+        # Include players and admins who have a playerId (admins can also be players)
+        if user.get("category") == category and (user.get("role") == "player" or (user.get("role") == "admin" and user.get("playerId"))):
+            # playerId is already a string like "p_JfY4FA", use it directly
+            player_id = user.get("playerId")
             safe_user = {
-                "id": f"p_{user.get('playerId'):03d}",  # Format as p_001, p_002, etc.
+                "id": player_id if player_id else user.get("username"),  # Use playerId directly
                 "name": user.get("name"),
                 "surname": user.get("surname"),
                 "category": user.get("category"),
                 "username": user.get("username"),
-                "playerId": user.get("playerId")
+                "playerId": player_id
             }
             player_accounts.append(safe_user)
     

@@ -86,7 +86,7 @@ class LambdaService {
 
   // Player methods (now work with accounts)
   async listPlayers(category: "man" | "woman"): Promise<LambdaResponse> {
-    return this.request("accounts.list", { category });
+    return this.request("players.list", { category });
   }
 
   async createPlayer(player: {
