@@ -10,6 +10,7 @@ import { EditScoreModal } from './components/EditScoreModal'
 import { MyMatchesModal } from './components/MyMatchesModal'
 import { StandingsModal } from './components/StandingsModal'
 import { ChangePasswordModal } from './components/ChangePasswordModal'
+import { getGroupLetter } from './utils/groupUtils'
 
 interface User {
   username: string;
@@ -24,7 +25,7 @@ function App() {
   const [credentials, setCredentials] = useState<LoginCredentials>({ username: '' })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  
+
   // Dashboard data
   const [players, setPlayers] = useState<Player[]>([])
   const [nextMatch, setNextMatch] = useState<GroupMatch | EliminationMatch | null>(null)
@@ -34,7 +35,7 @@ function App() {
   const [bracket, setBracket] = useState<any>(null)
   const [standingsCategory, setStandingsCategory] = useState<Category>('man')
   const [selectedGroupId, setSelectedGroupId] = useState<string>('all')
-  
+
   // Modal states
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false)
   const [showAccountManagement, setShowAccountManagement] = useState(false)
@@ -50,17 +51,17 @@ function App() {
   // Helper function to get user's category
   const getUserCategory = async (playerId: string | null): Promise<Category> => {
     if (!playerId) return 'man' // Default category
-    
+
     try {
       // Try to find the user in both categories
       const [manPlayers, womanPlayers] = await Promise.all([
         dataService.getPlayers('man'),
         dataService.getPlayers('woman')
       ])
-      
+
       const allPlayers = [...manPlayers, ...womanPlayers]
       const userPlayer = allPlayers.find(p => p.id === playerId)
-      
+
       return userPlayer?.category || 'man'
     } catch (error) {
       console.error('Error getting user category:', error)
@@ -72,10 +73,10 @@ function App() {
     e.preventDefault()
     setIsLoading(true)
     setError('')
-    
+
     try {
       const response = await userService.login(credentials)
-      
+
       if (response.success && response.user) {
         // Get user's category from their account data
         try {
@@ -89,7 +90,7 @@ function App() {
           setCredentials({ username: '', password: '' })
           setShowLoginModal(false)
           setError('')
-          
+
           // Load dashboard data after successful login
           loadDashboardData()
         } catch (error) {
@@ -162,7 +163,7 @@ function App() {
   // Get all players from all groups combined
   const getAllPlayersStandings = (): PlayerStanding[] => {
     const allPlayers = new Map<string, PlayerStanding>();
-    
+
     standings
       .forEach(group => {
         group.table.forEach(player => {
@@ -188,7 +189,7 @@ function App() {
             existingPlayer.pointsAgainst = existingPlayer.pointsLost;
           } else {
             // Add new player with legacy field mapping
-            allPlayers.set(player.playerId, { 
+            allPlayers.set(player.playerId, {
               ...player,
               setsFor: player.setsWon || player.setsFor || 0,
               setsAgainst: player.setsLost || player.setsAgainst || 0,
@@ -210,12 +211,12 @@ function App() {
       const aRecord = a.wins - a.losses;
       const bRecord = b.wins - b.losses;
       if (aRecord !== bRecord) return bRecord - aRecord;
-      
+
       // Secondary: Sets difference
       const aSetDiff = (a.setsFor || 0) - (a.setsAgainst || 0);
       const bSetDiff = (b.setsFor || 0) - (b.setsAgainst || 0);
       if (aSetDiff !== bSetDiff) return bSetDiff - aSetDiff;
-      
+
       // Tertiary: Points difference
       const aPointDiff = (a.pointsFor || 0) - (a.pointsAgainst || 0);
       const bPointDiff = (b.pointsFor || 0) - (b.pointsAgainst || 0);
@@ -231,7 +232,7 @@ function App() {
     try {
       const standingsData = await dataService.getStandings(category)
       setStandings(standingsData)
-      
+
       // Set 'all' as selected if no group is selected or if selectedGroupId is invalid
       if (standingsData.length > 0 && (!selectedGroupId || selectedGroupId === '')) {
         setSelectedGroupId('all')
@@ -260,7 +261,7 @@ function App() {
       if (user.playerId && user.category) {
         const nextMatchData = await dataService.getNextMatchForPlayer(user.category, user.playerId)
         setNextMatch(nextMatchData)
-        
+
         // Load player's matches
         const myMatchesData = await dataService.getMatchesForPlayer(user.category, user.playerId)
         setMyMatches(myMatchesData)
@@ -330,7 +331,7 @@ function App() {
   }
 
   if (isLoggedIn) {
-  return (
+    return (
       <div className="app">
         <header className="header">
           <div className="header-content">
@@ -354,7 +355,7 @@ function App() {
             </div>
           </div>
         </header>
-        
+
         <main className="main-content">
           {/* Top Row */}
           <div className="top-row">
@@ -386,7 +387,7 @@ function App() {
                         ))}
                       </div>
                     </div>
-                    <button 
+                    <button
                       className="edit-score-btn"
                       onClick={() => handleEditScore(nextMatch)}
                     >
@@ -400,17 +401,17 @@ function App() {
                 )}
               </div>
             </div>
-            
+
             <div className="quick-actions">
               <h4>Szybkie Akcje</h4>
               <div className="action-buttons">
-                <button 
+                <button
                   className="action-btn yellow"
                   onClick={handleMyMatches}
                 >
                   Moje Mecze
                 </button>
-                <button 
+                <button
                   className="action-btn blue"
                   onClick={handleStandings}
                 >
@@ -418,24 +419,24 @@ function App() {
                 </button>
               </div>
             </div>
-            
+
             {user?.role === 'admin' && (
               <div className="admin-actions">
                 <h4>Akcje Administratora</h4>
                 <div className="action-buttons">
-                  <button 
+                  <button
                     className="action-btn black"
                     onClick={() => setShowGroupGenerator(true)}
                   >
                     Grupy
                   </button>
-                  <button 
+                  <button
                     className="action-btn blue"
                     onClick={() => setShowMatchCreator(true)}
                   >
                     Mecze
                   </button>
-                  <button 
+                  <button
                     className="action-btn red"
                     onClick={() => setShowAccountManagement(true)}
                   >
@@ -507,13 +508,13 @@ function App() {
               <div className="section-header">
                 <h3>Klasyfikacja Grup</h3>
                 <div className="tabs">
-                  <button 
+                  <button
                     className={`tab ${standingsCategory === 'man' ? 'active' : ''}`}
                     onClick={() => handleStandingsCategoryChange('man')}
                   >
                     Mężczyźni
                   </button>
-                  <button 
+                  <button
                     className={`tab ${standingsCategory === 'woman' ? 'active' : ''}`}
                     onClick={() => handleStandingsCategoryChange('woman')}
                   >
@@ -522,7 +523,7 @@ function App() {
                 </div>
                 {standings.length > 0 && (
                   <div className="group-tabs">
-                    <button 
+                    <button
                       className={`group-tab ${selectedGroupId === 'all' ? 'active' : ''}`}
                       onClick={() => setSelectedGroupId('all')}
                     >
@@ -530,13 +531,18 @@ function App() {
                     </button>
                     {standings
                       .filter(group => group.groupId !== 'nogroup')
+                      .sort((a, b) => {
+                        const letterA = getGroupLetter(a.groupId);
+                        const letterB = getGroupLetter(b.groupId);
+                        return letterA.localeCompare(letterB);
+                      })
                       .map((group) => (
-                        <button 
+                        <button
                           key={group.groupId}
                           className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
                           onClick={() => setSelectedGroupId(group.groupId)}
                         >
-                          Grupa {group.groupId}
+                          Grupa {getGroupLetter(group.groupId)}
                         </button>
                       ))}
                   </div>
@@ -578,7 +584,7 @@ function App() {
                       const selectedGroup = standings.find(group => group.groupId === selectedGroupId);
                       return selectedGroup ? (
                         <div key={selectedGroup.groupId} className="group-standings-table">
-                          <h4>Grupa {selectedGroup.groupId}</h4>
+                          <h4>Grupa {getGroupLetter(selectedGroup.groupId)}</h4>
                           <table>
                             <thead>
                               <tr>
@@ -640,7 +646,7 @@ function App() {
             </div>
           </div>
         </main>
-        
+
         {/* Footer */}
         <footer className="footer">
           <div className="footer-content">
@@ -648,7 +654,7 @@ function App() {
               <span className="footer-text">© 2025 Marymont Ping Pong</span>
             </div>
             <div className="footer-actions">
-              <button 
+              <button
                 className="footer-btn"
                 onClick={() => window.open('https://www.youtube.com/watch?v=xvFZjo5PgG0', '_blank')}
               >
@@ -657,7 +663,7 @@ function App() {
             </div>
           </div>
         </footer>
-        
+
         {/* Add Player Modal */}
         <AddPlayerModal
           isOpen={showAddPlayerModal}
@@ -672,8 +678,8 @@ function App() {
             <div className="modal-content account-management-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>Zarządzanie Kontami</h2>
-                <button 
-                  className="modal-close" 
+                <button
+                  className="modal-close"
                   onClick={() => setShowAccountManagement(false)}
                 >
                   ×
@@ -692,15 +698,15 @@ function App() {
             <div className="modal-content group-generator-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>Grupy</h2>
-                <button 
-                  className="modal-close" 
+                <button
+                  className="modal-close"
                   onClick={() => setShowGroupGenerator(false)}
                 >
                   ×
                 </button>
               </div>
               <div className="modal-body">
-                <GroupGenerator 
+                <GroupGenerator
                   onGroupsUpdated={loadDashboardData}
                 />
               </div>
@@ -714,15 +720,15 @@ function App() {
             <div className="modal-content match-creator-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>Mecze</h2>
-                <button 
-                  className="modal-close" 
+                <button
+                  className="modal-close"
                   onClick={() => setShowMatchCreator(false)}
                 >
                   ×
                 </button>
               </div>
               <div className="modal-body">
-                <MatchCreator 
+                <MatchCreator
                   onMatchesCreated={loadDashboardData}
                   onEditScore={handleEditScore}
                 />
@@ -782,15 +788,15 @@ function App() {
           <div className="login-card">
             <div className="login-header">
               <div className="login-logo-container">
-                <img 
-                  src="/logo.jpg" 
-                  alt="Marymoncki Turniej Pingonga" 
+                <img
+                  src="/logo.jpg"
+                  alt="Marymoncki Turniej Pingonga"
                   className="login-logo"
                 />
               </div>
               <p className="login-subtitle">Zaloguj się do swojego konta</p>
             </div>
-            
+
             <form onSubmit={handleLogin} className="login-form">
               <div className="input-group">
                 <label htmlFor="username" className="input-label">Nazwa użytkownika</label>
@@ -806,7 +812,7 @@ function App() {
                   disabled={isLoading}
                 />
               </div>
-              
+
               <div className="input-group">
                 <label htmlFor="password" className="input-label">Hasło</label>
                 <input
@@ -821,25 +827,25 @@ function App() {
                   disabled={isLoading}
                 />
               </div>
-              
+
               {error && <div className="error-message">{error}</div>}
-              
-              <button 
-                type="submit" 
+
+              <button
+                type="submit"
                 className="login-btn"
                 disabled={isLoading}
               >
                 {isLoading ? 'Logowanie...' : 'Zaloguj'}
               </button>
             </form>
-            
+
             <div className="login-footer">
               <p className="demo-credentials">
                 Skontaktuj się z Dziubsonem w celu dostępu do konta
               </p>
             </div>
-            
-            <button 
+
+            <button
               onClick={() => {
                 setShowLoginModal(false)
                 setError('')
@@ -864,8 +870,8 @@ function App() {
             <h1 className="logo">Marymont Ping Pong</h1>
           </div>
           <div className="login-button-container">
-            <button 
-              onClick={() => setShowLoginModal(true)} 
+            <button
+              onClick={() => setShowLoginModal(true)}
               className="login-btn-header"
             >
               Zaloguj się
@@ -873,7 +879,7 @@ function App() {
           </div>
         </div>
       </header>
-      
+
       <main className="main-content">
         {/* Standings Section */}
         <div className="bottom-section">
@@ -881,13 +887,13 @@ function App() {
             <div className="section-header">
               <h3>Klasyfikacja Grup</h3>
               <div className="tabs">
-                <button 
+                <button
                   className={`tab ${standingsCategory === 'man' ? 'active' : ''}`}
                   onClick={() => handleStandingsCategoryChange('man')}
                 >
                   Mężczyźni
                 </button>
-                <button 
+                <button
                   className={`tab ${standingsCategory === 'woman' ? 'active' : ''}`}
                   onClick={() => handleStandingsCategoryChange('woman')}
                 >
@@ -896,7 +902,7 @@ function App() {
               </div>
               {standings.length > 0 && (
                 <div className="group-tabs">
-                  <button 
+                  <button
                     className={`group-tab ${selectedGroupId === 'all' ? 'active' : ''}`}
                     onClick={() => setSelectedGroupId('all')}
                   >
@@ -905,7 +911,7 @@ function App() {
                   {standings
                     .filter(group => group.groupId !== 'nogroup')
                     .map((group) => (
-                      <button 
+                      <button
                         key={group.groupId}
                         className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
                         onClick={() => setSelectedGroupId(group.groupId)}
@@ -939,7 +945,7 @@ function App() {
                               <tr key={player.playerId}>
                                 <td>{player.rank}</td>
                                 <td>
-                                  {player.name && player.surname 
+                                  {player.name && player.surname
                                     ? `${player.name} ${player.surname}`
                                     : getPlayerName(player.playerId)}
                                 </td>
@@ -972,7 +978,7 @@ function App() {
                               <tr key={player.playerId}>
                                 <td>{player.rank}</td>
                                 <td>
-                                  {player.name && player.surname 
+                                  {player.name && player.surname
                                     ? `${player.name} ${player.surname}`
                                     : getPlayerName(player.playerId)}
                                 </td>
@@ -996,7 +1002,7 @@ function App() {
           </div>
         </div>
       </main>
-      
+
       {/* Footer */}
       <footer className="footer">
         <div className="footer-content">

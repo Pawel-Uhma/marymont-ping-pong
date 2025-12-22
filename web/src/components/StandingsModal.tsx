@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { dataService } from '../api';
 import type { GroupStanding, Player, Category, PlayerStanding } from '../api/types';
+import { getGroupLetter } from '../utils/groupUtils';
 
 interface StandingsModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
     try {
       setIsLoading(true);
       setError('');
-      
+
       // Automatically recalculate standings when modal opens
       // If recalculation fails (e.g., non-admin user), just load existing standings
       try {
@@ -40,7 +41,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
         // Silently fail recalculation - will just load existing standings
         console.log('Recalculation not available, loading existing standings');
       }
-      
+
       // Load the standings (either newly calculated or existing)
       const standingsData = await dataService.getStandings(selectedCategory);
       setStandings(standingsData);
@@ -66,42 +67,42 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
   // Get all players from all groups combined
   const getAllPlayersStandings = (): PlayerStanding[] => {
     const allPlayers = new Map<string, PlayerStanding>();
-    
+
     standings
       .forEach(group => {
-      group.table.forEach(player => {
-        const existingPlayer = allPlayers.get(player.playerId);
-        if (existingPlayer) {
-          // Combine stats
-          existingPlayer.wins += player.wins;
-          existingPlayer.losses += player.losses;
-          existingPlayer.setsWon += player.setsWon;
-          existingPlayer.setsLost += player.setsLost;
-          existingPlayer.pointsWon += player.pointsWon;
-          existingPlayer.pointsLost += player.pointsLost;
-          // Recalculate differences
-          existingPlayer.setDifference = existingPlayer.setsWon - existingPlayer.setsLost;
-          existingPlayer.pointDifference = existingPlayer.pointsWon - existingPlayer.pointsLost;
-          // Recalculate win percentage
-          const totalMatches = existingPlayer.wins + existingPlayer.losses;
-          existingPlayer.winPercentage = totalMatches > 0 ? (existingPlayer.wins / totalMatches) * 100 : 0;
-          // Update legacy fields for backward compatibility
-          existingPlayer.setsFor = existingPlayer.setsWon;
-          existingPlayer.setsAgainst = existingPlayer.setsLost;
-          existingPlayer.pointsFor = existingPlayer.pointsWon;
-          existingPlayer.pointsAgainst = existingPlayer.pointsLost;
-        } else {
-          // Add new player with legacy field mapping
-          allPlayers.set(player.playerId, { 
-            ...player,
-            setsFor: player.setsWon,
-            setsAgainst: player.setsLost,
-            pointsFor: player.pointsWon,
-            pointsAgainst: player.pointsLost
-          });
-        }
+        group.table.forEach(player => {
+          const existingPlayer = allPlayers.get(player.playerId);
+          if (existingPlayer) {
+            // Combine stats
+            existingPlayer.wins += player.wins;
+            existingPlayer.losses += player.losses;
+            existingPlayer.setsWon += player.setsWon;
+            existingPlayer.setsLost += player.setsLost;
+            existingPlayer.pointsWon += player.pointsWon;
+            existingPlayer.pointsLost += player.pointsLost;
+            // Recalculate differences
+            existingPlayer.setDifference = existingPlayer.setsWon - existingPlayer.setsLost;
+            existingPlayer.pointDifference = existingPlayer.pointsWon - existingPlayer.pointsLost;
+            // Recalculate win percentage
+            const totalMatches = existingPlayer.wins + existingPlayer.losses;
+            existingPlayer.winPercentage = totalMatches > 0 ? (existingPlayer.wins / totalMatches) * 100 : 0;
+            // Update legacy fields for backward compatibility
+            existingPlayer.setsFor = existingPlayer.setsWon;
+            existingPlayer.setsAgainst = existingPlayer.setsLost;
+            existingPlayer.pointsFor = existingPlayer.pointsWon;
+            existingPlayer.pointsAgainst = existingPlayer.pointsLost;
+          } else {
+            // Add new player with legacy field mapping
+            allPlayers.set(player.playerId, {
+              ...player,
+              setsFor: player.setsWon,
+              setsAgainst: player.setsLost,
+              pointsFor: player.pointsWon,
+              pointsAgainst: player.pointsLost
+            });
+          }
+        });
       });
-    });
 
     // Convert to array and sort by rank (since API already provides ranking)
     const combinedPlayers = Array.from(allPlayers.values());
@@ -110,15 +111,15 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
       if (a.rank && b.rank) {
         return a.rank - b.rank;
       }
-      
+
       // Fallback sorting logic
       const aRecord = a.wins - a.losses;
       const bRecord = b.wins - b.losses;
       if (aRecord !== bRecord) return bRecord - aRecord;
-      
+
       // Secondary: Sets difference
       if (a.setDifference !== b.setDifference) return b.setDifference - a.setDifference;
-      
+
       // Tertiary: Points difference
       return b.pointDifference - a.pointDifference;
     });
@@ -134,7 +135,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
     } else {
       const group = standings.find(g => g.groupId === selectedGroupId);
       return {
-        title: `${selectedCategory === 'man' ? 'Mężczyźni' : 'Kobiety'} - Grupa ${selectedGroupId}`,
+        title: `${selectedCategory === 'man' ? 'Mężczyźni' : 'Kobiety'} - Grupa ${getGroupLetter(selectedGroupId)}`,
         standings: group ? group.table : []
       };
     }
@@ -183,14 +184,14 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
           {/* Category Selection */}
           <div className="standings-controls">
             <div className="category-tabs">
-              <button 
+              <button
                 className={`category-tab ${selectedCategory === 'man' ? 'active' : ''}`}
                 onClick={() => handleCategoryChange('man')}
                 disabled={isLoading}
               >
                 Mężczyźni
               </button>
-              <button 
+              <button
                 className={`category-tab ${selectedCategory === 'woman' ? 'active' : ''}`}
                 onClick={() => handleCategoryChange('woman')}
                 disabled={isLoading}
@@ -203,7 +204,7 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
             <div className="group-selection">
               <label className="group-label">Widok:</label>
               <div className="group-tabs">
-                <button 
+                <button
                   className={`group-tab ${selectedGroupId === 'all' ? 'active' : ''}`}
                   onClick={() => handleGroupChange('all')}
                   disabled={isLoading}
@@ -212,16 +213,21 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                 </button>
                 {standings
                   .filter(group => group.groupId !== 'nogroup')
+                  .sort((a, b) => {
+                    const letterA = getGroupLetter(a.groupId);
+                    const letterB = getGroupLetter(b.groupId);
+                    return letterA.localeCompare(letterB);
+                  })
                   .map((group) => (
-                  <button 
-                    key={group.groupId}
-                    className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
-                    onClick={() => handleGroupChange(group.groupId)}
-                    disabled={isLoading}
-                  >
-                    Grupa {group.groupId}
-                  </button>
-                ))}
+                    <button
+                      key={group.groupId}
+                      className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
+                      onClick={() => handleGroupChange(group.groupId)}
+                      disabled={isLoading}
+                    >
+                      Grupa {getGroupLetter(group.groupId)}
+                    </button>
+                  ))}
               </div>
             </div>
           </div>
@@ -258,11 +264,11 @@ export function StandingsModal({ isOpen, onClose, players }: StandingsModalProps
                           const percentage = player.winPercentage <= 1.0 ? player.winPercentage * 100 : player.winPercentage;
                           winPercentage = percentage.toFixed(1);
                         } else {
-                          winPercentage = (player.wins + player.losses) > 0 
+                          winPercentage = (player.wins + player.losses) > 0
                             ? ((player.wins / (player.wins + player.losses)) * 100).toFixed(1)
                             : '0.0';
                         }
-                        
+
                         return (
                           <tr key={player.playerId} className={index < 3 ? `top-${index + 1}` : ''}>
                             <td className="rank-cell">

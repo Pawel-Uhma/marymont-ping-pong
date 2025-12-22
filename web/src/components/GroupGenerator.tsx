@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { dataService } from '../api';
 import type { Player, Category, Group } from '../api/types';
 import { GenerateGroupMatchesModal } from './GenerateGroupMatchesModal';
+import { getGroupLetter } from '../utils/groupUtils';
 
 interface GroupGeneratorProps {
   onGroupsUpdated: () => void;
@@ -176,7 +177,7 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
       const playerCount = Object.values(playerGroupAssignments).filter(id => id === i).length;
       options.push({
         value: i,
-        label: `Grupa ${i} (${playerCount} graczy)`
+        label: `Grupa ${getGroupLetter(i)} (${playerCount} graczy)`
       });
     }
     return options;
@@ -320,7 +321,7 @@ export function GroupGenerator({ onGroupsUpdated }: GroupGeneratorProps) {
             return (
               <div key={groupId} className="group-card">
                 <div className="group-header">
-                  <h4>Grupa {groupId}</h4>
+                  <h4>Grupa {getGroupLetter(groupId)}</h4>
                   <span className="player-count">({playersInGroup.length} graczy)</span>
                 </div>
                 <div className="group-players">

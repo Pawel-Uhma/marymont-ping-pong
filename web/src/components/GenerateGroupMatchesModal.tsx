@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { dataService } from '../api';
 import type { Category, Group, Player } from '../api/types';
+import { getGroupLetter } from '../utils/groupUtils';
 
 interface GenerateGroupMatchesModalProps {
   onMatchesGenerated: () => void;
@@ -253,7 +254,7 @@ export function GenerateGroupMatchesModal({ onMatchesGenerated, onClose }: Gener
                   return (
                     <div key={group.id} className="group-preview-item">
                       <div className="group-preview-header">
-                        <span className="group-name">Grupa {group.id}   </span>
+                        <span className="group-name">Grupa {getGroupLetter(group.id)}   </span>
                         <span className="group-stats">
                           {playersInGroup.length} gracz{playersInGroup.length !== 1 ? 'y' : ''} → {matchesInGroup} mecz{matchesInGroup !== 1 ? 'ów' : ''}
                         </span>

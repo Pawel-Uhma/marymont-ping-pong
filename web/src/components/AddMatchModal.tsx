@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { dataService } from '../api';
 import type { Player, Category, Group } from '../api/types';
+import { getGroupLetter } from '../utils/groupUtils';
 
 interface AddMatchModalProps {
   category: Category;
@@ -254,7 +255,7 @@ export function AddMatchModal({ category, onMatchAdded, onClose }: AddMatchModal
                 <option value="">Wybierz Grupę</option>
                 {groups.map(group => (
                   <option key={group.id} value={group.id}>
-                    Grupa {group.id.replace('group_', '')}
+                    Grupa {getGroupLetter(group.id)}
                   </option>
                 ))}
               </select>
