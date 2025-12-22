@@ -910,13 +910,18 @@ function App() {
                   </button>
                   {standings
                     .filter(group => group.groupId !== 'nogroup')
+                    .sort((a, b) => {
+                      const letterA = getGroupLetter(a.groupId);
+                      const letterB = getGroupLetter(b.groupId);
+                      return letterA.localeCompare(letterB);
+                    })
                     .map((group) => (
                       <button
                         key={group.groupId}
                         className={`group-tab ${selectedGroupId === group.groupId ? 'active' : ''}`}
                         onClick={() => setSelectedGroupId(group.groupId)}
                       >
-                        Grupa {group.groupId}
+                        Grupa {getGroupLetter(group.groupId)}
                       </button>
                     ))}
                 </div>
