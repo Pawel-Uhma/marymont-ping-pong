@@ -961,6 +961,243 @@
   cursor: not-allowed;
 }
 
+/* Tournament Matches Section */
+.tournament-matches-section {
+  background: var(--white);
+  border: 2px solid var(--black);
+  border-radius: 8px;
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.tournament-matches-section .section-header {
+  margin-bottom: 20px;
+}
+
+.tournament-matches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tournament-match-card {
+  border: 1px solid var(--medium-gray);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.tournament-match-card:hover {
+  box-shadow: 0 4px 20px var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+.tournament-match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--light-gray);
+  border-bottom: 1px solid var(--medium-gray);
+}
+
+.tournament-match-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.phase-badge {
+  background: var(--black);
+  color: var(--white);
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.category-badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.category-badge.man {
+  background: var(--blue);
+  color: var(--white);
+}
+
+.category-badge.woman {
+  background: #E91E63;
+  color: var(--white);
+}
+
+.tournament-match-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dark-gray);
+}
+
+/* Scoreboard */
+.tournament-scoreboard {
+  padding: 8px 16px 12px;
+}
+
+.scoreboard-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  gap: 12px;
+}
+
+.scoreboard-row + .scoreboard-row {
+  border-top: 1px solid var(--medium-gray);
+}
+
+.scoreboard-row.winner {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(255, 215, 0, 0.15) 100%);
+  border-left: 4px solid var(--yellow);
+  padding-left: 8px;
+}
+
+.scoreboard-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+  flex: 1;
+}
+
+.winner-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.scoreboard-name {
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--black);
+}
+
+.scoreboard-row.winner .scoreboard-name {
+  font-weight: 700;
+}
+
+.scoreboard-sets {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.scoreboard-set {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dark-gray);
+  background: var(--light-gray);
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.scoreboard-set.set-won {
+  background: var(--black);
+  color: var(--white);
+  font-weight: 700;
+}
+
+.scoreboard-total {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--black);
+  background: var(--light-gray);
+  border-radius: 8px;
+  border: 2px solid var(--medium-gray);
+}
+
+.scoreboard-row.winner .scoreboard-total {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: var(--black);
+}
+
+/* Match status for non-final matches */
+.tournament-match-status {
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  border-top: 1px solid var(--medium-gray);
+}
+
+.tournament-match-status.in_progress {
+  background: rgba(30, 144, 255, 0.08);
+  color: var(--blue);
+}
+
+.tournament-match-status.scheduled {
+  background: rgba(102, 102, 102, 0.06);
+  color: var(--dark-gray);
+}
+
+/* Pagination */
+.tournament-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--medium-gray);
+}
+
+.pagination-btn {
+  background: var(--white);
+  border: 2px solid var(--black);
+  color: var(--black);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--black);
+  color: var(--white);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: var(--medium-gray);
+}
+
+.pagination-info {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--black);
+  min-width: 60px;
+  text-align: center;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .login-card {
@@ -1293,6 +1530,42 @@
     font-size: 15px;
     min-height: 44px;
   }
+
+  /* Tournament Matches Mobile */
+  .tournament-matches-section {
+    padding: 20px 16px;
+  }
+
+  .tournament-match-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .scoreboard-player {
+    min-width: 120px;
+  }
+
+  .scoreboard-name {
+    font-size: 13px;
+  }
+
+  .scoreboard-set {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .scoreboard-total {
+    width: 36px;
+    height: 36px;
+    font-size: 17px;
+  }
+
+  .pagination-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
 }
 
 /* Additional mobile optimizations for very small screens */
@@ -1435,6 +1708,43 @@
   .edit-score-btn {
     padding: 16px 24px;
     font-size: 18px;
+  }
+
+  /* Tournament Matches Small Screen */
+  .tournament-matches-section {
+    padding: 16px 12px;
+  }
+
+  .scoreboard-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .scoreboard-player {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .scoreboard-sets {
+    flex: 1;
+  }
+
+  .scoreboard-set {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+
+  .scoreboard-total {
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+  }
+
+  .pagination-btn {
+    padding: 8px 14px;
+    font-size: 13px;
   }
 }
 

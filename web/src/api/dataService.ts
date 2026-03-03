@@ -393,6 +393,32 @@ class DataService {
 
     return upcomingMatches[0] || null;
   }
+  async getAllTournamentMatches(): Promise<{ match: GroupMatch | EliminationMatch, category: Category }[]> {
+    try {
+      const [manGroupMatches, manElimMatches, womanGroupMatches, womanElimMatches] = await Promise.all([
+        this.getGroupMatches('man'),
+        this.getEliminationMatches('man'),
+        this.getGroupMatches('woman'),
+        this.getEliminationMatches('woman')
+      ]);
+
+      const allMatches = [
+        ...manGroupMatches.map(m => ({ match: m as GroupMatch | EliminationMatch, category: 'man' as Category })),
+        ...manElimMatches.map(m => ({ match: m as GroupMatch | EliminationMatch, category: 'man' as Category })),
+        ...womanGroupMatches.map(m => ({ match: m as GroupMatch | EliminationMatch, category: 'woman' as Category })),
+        ...womanElimMatches.map(m => ({ match: m as GroupMatch | EliminationMatch, category: 'woman' as Category })),
+      ].filter(item => item.match.status === 'final');
+
+      return allMatches.sort((a, b) => {
+        const dateA = a.match.scheduledAt ? new Date(a.match.scheduledAt).getTime() : 0;
+        const dateB = b.match.scheduledAt ? new Date(b.match.scheduledAt).getTime() : 0;
+        return dateB - dateA;
+      });
+    } catch (error) {
+      console.error('Get all tournament matches error:', error);
+      return [];
+    }
+  }
 }
 
 export const dataService = new DataService();

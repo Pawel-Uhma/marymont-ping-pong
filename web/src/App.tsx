@@ -48,6 +48,10 @@ function App() {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
 
+  // Tournament matches data
+  const [tournamentMatches, setTournamentMatches] = useState<{ match: GroupMatch | EliminationMatch, category: Category }[]>([])
+  const [tournamentPage, setTournamentPage] = useState(0)
+
   // Helper function to get user's category
   const getUserCategory = async (playerId: string | null): Promise<Category> => {
     if (!playerId) return 'man' // Default category
@@ -242,6 +246,16 @@ function App() {
     }
   }
 
+  // Load tournament matches data
+  const loadTournamentData = async () => {
+    try {
+      const allMatches = await dataService.getAllTournamentMatches();
+      setTournamentMatches(allMatches);
+    } catch (error) {
+      console.error('Error loading tournament data:', error);
+    }
+  }
+
   // Load dashboard data
   const loadDashboardData = async () => {
     console.log('App - loadDashboardData called');
@@ -283,11 +297,21 @@ function App() {
     } catch (error) {
       console.error('Error loading dashboard data:', error)
     }
+    // Also refresh tournament matches
+    loadTournamentData()
   }
 
-  // Load standings on initial mount (even when not logged in)
+  // Load public data on initial mount (even when not logged in)
   useEffect(() => {
     loadStandingsData(standingsCategory)
+    loadTournamentData()
+    // Load players for tournament match name resolution
+    Promise.all([
+      dataService.getPlayers('man'),
+      dataService.getPlayers('woman')
+    ]).then(([manPlayers, womanPlayers]) => {
+      setPlayers([...manPlayers, ...womanPlayers])
+    }).catch(err => console.error('Error loading players:', err))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -329,6 +353,130 @@ function App() {
       return `Set ${index + 1}: ${set.p1}-${set.p2}`
     })
   }
+
+  // Tournament matches helpers
+  const getSetWins = (match: GroupMatch | EliminationMatch): [number, number] => {
+    let p1Wins = 0, p2Wins = 0;
+    match.sets.forEach(set => {
+      if (set.p1 === 0 && set.p2 === 0) return;
+      if (set.p1 > set.p2) p1Wins++;
+      else if (set.p2 > set.p1) p2Wins++;
+    });
+    return [p1Wins, p2Wins];
+  }
+
+  const getMatchPhaseLabel = (match: GroupMatch | EliminationMatch): string => {
+    if (match.phase === 'group') {
+      return `Grupa ${getGroupLetter((match as GroupMatch).groupId)}`;
+    }
+    return (match as EliminationMatch).roundName || 'Faza Pucharowa';
+  }
+
+  const getCategoryLabel = (category: Category): string => {
+    return category === 'man' ? 'Mężczyźni' : 'Kobiety';
+  }
+
+  // Tournament matches pagination
+  const MATCHES_PER_PAGE = 3;
+  const totalTournamentPages = Math.ceil(tournamentMatches.length / MATCHES_PER_PAGE);
+  const paginatedTournamentMatches = tournamentMatches.slice(
+    tournamentPage * MATCHES_PER_PAGE,
+    (tournamentPage + 1) * MATCHES_PER_PAGE
+  );
+
+  const renderTournamentMatches = () => (
+    <div className="tournament-matches-section">
+      <div className="section-header">
+        <h3>Mecze Turnieju</h3>
+      </div>
+      {paginatedTournamentMatches.length > 0 ? (
+        <>
+          <div className="tournament-matches-list">
+            {paginatedTournamentMatches.map(({ match, category }) => {
+              const [p1Sets, p2Sets] = getSetWins(match);
+              const isP1Winner = match.winner === match.p1;
+              const isP2Winner = match.winner === match.p2;
+
+              return (
+                <div key={`${category}-${match.phase}-${match.id}`} className="tournament-match-card">
+                  <div className="tournament-match-header">
+                    <div className="tournament-match-badges">
+                      <span className="phase-badge">{getMatchPhaseLabel(match)}</span>
+                      <span className={`category-badge ${category}`}>{getCategoryLabel(category)}</span>
+                    </div>
+                    {match.scheduledAt && (
+                      <span className="tournament-match-date">
+                        {new Date(match.scheduledAt).toLocaleDateString('pl-PL')}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="tournament-scoreboard">
+                    <div className={`scoreboard-row ${isP1Winner ? 'winner' : ''}`}>
+                      <div className="scoreboard-player">
+                        {isP1Winner && <span className="winner-icon">🏆</span>}
+                        <span className="scoreboard-name">{getPlayerName(match.p1)}</span>
+                      </div>
+                      <div className="scoreboard-sets">
+                        {match.sets.map((set, i) => (
+                          <div key={i} className={`scoreboard-set ${set.p1 > set.p2 && !(set.p1 === 0 && set.p2 === 0) ? 'set-won' : ''}`}>
+                            {set.p1 === 0 && set.p2 === 0 ? '-' : set.p1}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="scoreboard-total">{p1Sets}</div>
+                    </div>
+
+                    <div className={`scoreboard-row ${isP2Winner ? 'winner' : ''}`}>
+                      <div className="scoreboard-player">
+                        {isP2Winner && <span className="winner-icon">🏆</span>}
+                        <span className="scoreboard-name">{getPlayerName(match.p2)}</span>
+                      </div>
+                      <div className="scoreboard-sets">
+                        {match.sets.map((set, i) => (
+                          <div key={i} className={`scoreboard-set ${set.p2 > set.p1 && !(set.p1 === 0 && set.p2 === 0) ? 'set-won' : ''}`}>
+                            {set.p1 === 0 && set.p2 === 0 ? '-' : set.p2}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="scoreboard-total">{p2Sets}</div>
+                    </div>
+                  </div>
+
+                </div>
+              );
+            })}
+          </div>
+
+          {totalTournamentPages > 1 && (
+            <div className="tournament-pagination">
+              <button
+                className="pagination-btn"
+                onClick={() => setTournamentPage(p => Math.max(0, p - 1))}
+                disabled={tournamentPage === 0}
+              >
+                Poprzednia
+              </button>
+              <span className="pagination-info">
+                {tournamentPage + 1} / {totalTournamentPages}
+              </span>
+              <button
+                className="pagination-btn"
+                onClick={() => setTournamentPage(p => Math.min(totalTournamentPages - 1, p + 1))}
+                disabled={tournamentPage === totalTournamentPages - 1}
+              >
+                Następna
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="no-matches">
+          <p>Brak meczów turnieju</p>
+        </div>
+      )}
+    </div>
+  )
 
   if (isLoggedIn) {
     return (
@@ -501,6 +649,9 @@ function App() {
               </div>
             </div>
           </div>
+
+          {/* Tournament Matches */}
+          {renderTournamentMatches()}
 
           {/* Bottom Section */}
           <div className="bottom-section">
@@ -881,6 +1032,9 @@ function App() {
       </header>
 
       <main className="main-content">
+        {/* Tournament Matches */}
+        {renderTournamentMatches()}
+
         {/* Standings Section */}
         <div className="bottom-section">
           <div className="group-standings">
