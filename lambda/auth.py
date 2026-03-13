@@ -418,10 +418,8 @@ def change_password(payload: dict, auth_user: dict):
     })
 
 # --- Action: players.list ---
-def list_players(payload: dict, auth_user: dict):
-    """List all player accounts. Requires authentication."""
-    if not auth_user:
-        return _resp(401, {"error": "Unauthorized"})
+def list_players(payload: dict, auth_user: dict = None):
+    """List all player accounts. Public endpoint."""
     
     category = (payload or {}).get("category", "man").strip()
     if category not in ["man", "woman"]:

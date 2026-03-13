@@ -119,8 +119,6 @@ def handler(event, context):
 
         # --- Players (now handled through accounts) ---
         if action == "players.list":
-            if not auth_user:
-                return _resp(401, {"error": "Unauthorized"})
             return auth.list_players(payload, auth_user)
 
         # --- Groups ---
