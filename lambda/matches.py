@@ -107,7 +107,12 @@ def list_matches(payload: dict):
     
     if filter_type:
         matches = [m for m in matches if m.get("type") == filter_type]
-    
+
+    # Filter by bracketType if specified (only for elimination matches)
+    bracket_type = (payload or {}).get("bracketType")
+    if bracket_type:
+        matches = [m for m in matches if m.get("bracketType") == bracket_type]
+
     return _resp(200, {"matches": matches})
 
 # ---------- API: update score ----------

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { dataService } from '../api';
+import { dataService, lambdaService } from '../api';
 import type { GroupMatch, EliminationMatch, Player, Category } from '../api/types';
 
 interface EditScoreModalProps {
@@ -160,31 +160,46 @@ export function EditScoreModal({ isOpen, onClose, onScoreUpdated, match, players
 
       // Determine final status
       const finalStatus = isMatchComplete() ? 'final' : matchStatus;
-      const winner = isMatchComplete() ? calculateMatchWinner() : null;
 
-      // Prepare match data for update
-      const matchData = {
-        id: match.id,
-        player1: match.p1,
-        player2: match.p2,
-        winner: winner,
-        status: finalStatus,
-        sets: scores,
-        category: matchCategory,
-        phase: match.phase,
-        groupId: match.phase === 'group' ? (match as GroupMatch).groupId : undefined,
-        scheduledAt: match.scheduledAt,
-        advancesTo: match.phase === 'elim' ? (match as EliminationMatch).advancesTo : undefined
-      };
+      // Check if this is an elimination match — use updateMatchScore for proper advancesTo propagation
+      const isElimination = match.phase === 'elim' || (match as any).type === 'elimination';
 
-      // Update match
-      const success = await dataService.updateMatch(matchData);
-      
-      if (success) {
+      if (isElimination) {
+        // Use lambdaService.updateMatchScore which triggers advancesTo propagation
+        await lambdaService.updateMatchScore(
+          matchCategory,
+          'elim',
+          String(match.id),
+          scores,
+          finalStatus
+        );
         onScoreUpdated();
         onClose();
       } else {
-        setError('Nie udało się zaktualizować wyniku meczu');
+        const winner = isMatchComplete() ? calculateMatchWinner() : null;
+
+        // Prepare match data for update
+        const matchData = {
+          id: match.id,
+          player1: match.p1,
+          player2: match.p2,
+          winner: winner,
+          status: finalStatus,
+          sets: scores,
+          category: matchCategory,
+          phase: match.phase,
+          groupId: match.phase === 'group' ? (match as GroupMatch).groupId : undefined,
+          scheduledAt: match.scheduledAt,
+        };
+
+        const success = await dataService.updateMatch(matchData);
+
+        if (success) {
+          onScoreUpdated();
+          onClose();
+        } else {
+          setError('Nie udało się zaktualizować wyniku meczu');
+        }
       }
     } catch (error) {
       console.error('Update score error:', error);

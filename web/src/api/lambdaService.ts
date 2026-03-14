@@ -125,13 +125,14 @@ class LambdaService {
     category: "man" | "woman",
     phase: "group" | "elim",
     matchId: string,
-    sets: any[]
+    sets: any[],
+    status: string = "final"
   ): Promise<LambdaResponse> {
     return this.request("matches.updateScore", {
       category,
       phase,
       matchId,
-      status: "final",
+      status,
       sets,
     });
   }
@@ -188,6 +189,18 @@ class LambdaService {
 
   async updateBracket(category: "man" | "woman", bracket: any): Promise<LambdaResponse> {
     return this.request("bracket.update", { category, bracket });
+  }
+
+  async createBracket(category: "man" | "woman", bracketType: "main" | "tds", slots: { position: number; playerId: string }[]): Promise<LambdaResponse> {
+    return this.request("bracket.create", { category, bracketType, slots });
+  }
+
+  async getBracketWithMatches(category: "man" | "woman", bracketType: "main" | "tds"): Promise<LambdaResponse> {
+    return this.request("bracket.getWithMatches", { category, bracketType });
+  }
+
+  async resetBracket(category: "man" | "woman", bracketType: "main" | "tds"): Promise<LambdaResponse> {
+    return this.request("bracket.reset", { category, bracketType });
   }
 
   // Account methods

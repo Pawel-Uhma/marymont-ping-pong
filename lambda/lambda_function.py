@@ -177,6 +177,19 @@ def handler(event, context):
 
         if action == "bracket.get":
             return bracket.get_bracket(payload)
+
+        if action == "bracket.create":
+            if not auth_user:
+                return _resp(401, {"error": "Unauthorized"})
+            return bracket.create_bracket(payload, auth_user)
+
+        if action == "bracket.getWithMatches":
+            return bracket.get_bracket_with_matches(payload)
+
+        if action == "bracket.reset":
+            if not auth_user:
+                return _resp(401, {"error": "Unauthorized"})
+            return bracket.reset_bracket(payload, auth_user)
             
         return _resp(400, {"error": "Unknown action"})
 

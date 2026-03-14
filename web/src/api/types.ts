@@ -64,15 +64,19 @@ export interface GroupMatch {
 
 export interface EliminationMatch {
   id: string;
+  type?: 'elimination';
   phase: 'elim';
+  bracketType?: BracketType;
   roundName: string;
   p1: string; // player ID
   p2: string; // player ID
+  p1Name?: string;
+  p2Name?: string;
   sets: Set[];
   winner: string | null; // player ID
   status: 'scheduled' | 'in_progress' | 'final';
   advancesTo: {
-    matchId: string;
+    matchId: string | number;
     as: 'p1' | 'p2';
   } | null;
   scheduledAt: string | null;
@@ -221,4 +225,7 @@ export interface LambdaAccountsResponse {
 
 // Category type
 export type Category = 'man' | 'woman';
+
+// Bracket type
+export type BracketType = 'main' | 'tds';
 

@@ -7,6 +7,7 @@ import type {
   GroupStanding,
   PlayerStanding,
   BracketData,
+  BracketType,
   Category
 } from './types';
 
@@ -283,6 +284,39 @@ class DataService {
       return true;
     } catch (error) {
       console.error(`Save bracket error for ${category}:`, error);
+      return false;
+    }
+  }
+
+  async getBracketWithMatches(category: Category, bracketType: BracketType): Promise<{ bracket: any; matches: EliminationMatch[] } | null> {
+    try {
+      const response = await lambdaService.getBracketWithMatches(
+        category as "man" | "woman",
+        bracketType as "main" | "tds"
+      );
+      return { bracket: response.bracket || null, matches: response.matches || [] };
+    } catch (error) {
+      console.error(`Get bracket with matches error for ${category}/${bracketType}:`, error);
+      return null;
+    }
+  }
+
+  async createBracket(category: Category, bracketType: BracketType, slots: { position: number; playerId: string }[]): Promise<boolean> {
+    try {
+      await lambdaService.createBracket(category as "man" | "woman", bracketType as "main" | "tds", slots);
+      return true;
+    } catch (error) {
+      console.error(`Create bracket error for ${category}/${bracketType}:`, error);
+      return false;
+    }
+  }
+
+  async resetBracket(category: Category, bracketType: BracketType): Promise<boolean> {
+    try {
+      await lambdaService.resetBracket(category as "man" | "woman", bracketType as "main" | "tds");
+      return true;
+    } catch (error) {
+      console.error(`Reset bracket error for ${category}/${bracketType}:`, error);
       return false;
     }
   }

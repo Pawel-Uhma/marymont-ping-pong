@@ -10,6 +10,8 @@ import { EditScoreModal } from './components/EditScoreModal'
 import { MyMatchesModal } from './components/MyMatchesModal'
 import { StandingsModal } from './components/StandingsModal'
 import { ChangePasswordModal } from './components/ChangePasswordModal'
+import { BracketView } from './components/BracketView'
+import { BracketAdmin } from './components/BracketAdmin'
 import { getGroupLetter } from './utils/groupUtils'
 
 interface User {
@@ -32,7 +34,6 @@ function App() {
   const [upcomingMatches, setUpcomingMatches] = useState<(GroupMatch | EliminationMatch)[]>([])
   const [myMatches, setMyMatches] = useState<(GroupMatch | EliminationMatch)[]>([])
   const [standings, setStandings] = useState<GroupStanding[]>([])
-  const [bracket, setBracket] = useState<any>(null)
   const [standingsCategory, setStandingsCategory] = useState<Category>('man')
   const [selectedGroupId, setSelectedGroupId] = useState<string>('all')
 
@@ -47,6 +48,13 @@ function App() {
   const [showStandingsModal, setShowStandingsModal] = useState(false)
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showBracketAdmin, setShowBracketAdmin] = useState(false)
+
+  // Bracket data for all three brackets
+  const [manBracketData, setManBracketData] = useState<{ bracket: any; matches: EliminationMatch[] } | null>(null)
+  const [womanBracketData, setWomanBracketData] = useState<{ bracket: any; matches: EliminationMatch[] } | null>(null)
+  const [tdsBracketData, setTdsBracketData] = useState<{ bracket: any; matches: EliminationMatch[] } | null>(null)
+  const [activeBracketTab, setActiveBracketTab] = useState<'man' | 'woman' | 'tds'>('man')
 
   // Tournament matches data
   const [tournamentMatches, setTournamentMatches] = useState<{ match: GroupMatch | EliminationMatch, category: Category }[]>([])
@@ -289,11 +297,16 @@ function App() {
       // Load standings
       await loadStandingsData(standingsCategory)
 
-      // Load bracket
-      if (user.category) {
-        const bracketData = await dataService.getBracket(user.category)
-        setBracket(bracketData)
-      }
+      // Load all three brackets in parallel
+      const [manBr, womanBr, tdsBr] = await Promise.all([
+        dataService.getBracketWithMatches('man', 'main'),
+        dataService.getBracketWithMatches('woman', 'main'),
+        dataService.getBracketWithMatches('man', 'tds'),
+      ])
+      setManBracketData(manBr)
+      setWomanBracketData(womanBr)
+      setTdsBracketData(tdsBr)
+
     } catch (error) {
       console.error('Error loading dashboard data:', error)
     }
@@ -301,10 +314,22 @@ function App() {
     loadTournamentData()
   }
 
+  const loadBracketData = async () => {
+    const [manBr, womanBr, tdsBr] = await Promise.all([
+      dataService.getBracketWithMatches('man', 'main'),
+      dataService.getBracketWithMatches('woman', 'main'),
+      dataService.getBracketWithMatches('man', 'tds'),
+    ])
+    setManBracketData(manBr)
+    setWomanBracketData(womanBr)
+    setTdsBracketData(tdsBr)
+  }
+
   // Load public data on initial mount (even when not logged in)
   useEffect(() => {
     loadStandingsData(standingsCategory)
     loadTournamentData()
+    loadBracketData()
     // Load players for tournament match name resolution
     Promise.all([
       dataService.getPlayers('man'),
@@ -771,29 +796,64 @@ function App() {
             </div>
 
             <div className="bracket-preview">
-              <h3>Podgląd Drabinki</h3>
-              <div className="bracket">
-                {bracket ? (
-                  bracket.rounds.map((round: any, roundIndex: number) => (
-                    <div key={roundIndex} className="bracket-round">
-                      <h5>{round.name}</h5>
-                      {round.matchIds.map((matchId: string) => {
-                        const match = bracket.matches?.find((m: any) => m.id === matchId)
-                        return match ? (
-                          <div key={matchId} className="bracket-match">
-                            <div className="player">{getPlayerName(match.p1)}</div>
-                            <div className="player">{getPlayerName(match.p2)}</div>
-                          </div>
-                        ) : null
-                      })}
-                    </div>
-                  ))
-                ) : (
-                  <div className="no-bracket">
-                    <p>Brak dostępnej drabinki</p>
-                  </div>
+              <div className="bracket-header">
+                <h3>Drabinki</h3>
+                {user?.role === 'admin' && (
+                  <button className="primary-btn small" onClick={() => setShowBracketAdmin(true)}>
+                    Zarządzaj Drabinkami
+                  </button>
                 )}
               </div>
+              <div className="bracket-tabs">
+                <button
+                  className={`bracket-tab ${activeBracketTab === 'man' ? 'active' : ''}`}
+                  onClick={() => setActiveBracketTab('man')}
+                >
+                  Mężczyźni
+                </button>
+                <button
+                  className={`bracket-tab ${activeBracketTab === 'woman' ? 'active' : ''}`}
+                  onClick={() => setActiveBracketTab('woman')}
+                >
+                  Kobiety
+                </button>
+                <button
+                  className={`bracket-tab ${activeBracketTab === 'tds' ? 'active' : ''}`}
+                  onClick={() => setActiveBracketTab('tds')}
+                >
+                  Turniej Drugiej Szansy
+                </button>
+              </div>
+              {activeBracketTab === 'man' && (
+                <BracketView
+                  bracket={manBracketData?.bracket}
+                  matches={manBracketData?.matches || []}
+                  players={players}
+                  title="Mężczyźni — Drabinka Główna"
+                  isAdmin={user?.role === 'admin'}
+                  onMatchClick={handleEditScore}
+                />
+              )}
+              {activeBracketTab === 'woman' && (
+                <BracketView
+                  bracket={womanBracketData?.bracket}
+                  matches={womanBracketData?.matches || []}
+                  players={players}
+                  title="Kobiety — Drabinka Główna"
+                  isAdmin={user?.role === 'admin'}
+                  onMatchClick={handleEditScore}
+                />
+              )}
+              {activeBracketTab === 'tds' && (
+                <BracketView
+                  bracket={tdsBracketData?.bracket}
+                  matches={tdsBracketData?.matches || []}
+                  players={players}
+                  title="Turniej Drugiej Szansy"
+                  isAdmin={user?.role === 'admin'}
+                  onMatchClick={handleEditScore}
+                />
+              )}
             </div>
           </div>
         </main>
@@ -899,6 +959,15 @@ function App() {
             category={user?.category}
           />
         )}
+
+        {/* Bracket Admin Modal */}
+        <BracketAdmin
+          isOpen={showBracketAdmin}
+          onClose={() => setShowBracketAdmin(false)}
+          onBracketChanged={() => { loadBracketData(); }}
+          players={players}
+          onMatchClick={(match) => { setShowBracketAdmin(false); handleEditScore(match); }}
+        />
 
         {/* My Matches Modal */}
         {showMyMatchesModal && user && user.playerId && (
