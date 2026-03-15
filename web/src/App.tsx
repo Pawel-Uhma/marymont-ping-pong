@@ -645,12 +645,6 @@ function App() {
                   {user?.role === 'admin' ? 'Administrator' : 'Gracz'}
                 </span>
               </div>
-              <button onClick={() => setShowChangePasswordModal(true)} className="change-password-btn">
-                Zmień Hasło
-              </button>
-              <button onClick={handleLogout} className="logout-btn">
-                Wyloguj
-              </button>
             </div>
           </div>
         </header>
@@ -685,15 +679,13 @@ function App() {
               <span className="sidebar-icon">🏆</span>
               <span className="sidebar-label">Drabinki</span>
             </button>
-            {user?.role === 'admin' && (
-              <button
-                className={`sidebar-item ${activeView === 'admin' ? 'active' : ''}`}
-                onClick={() => setActiveView('admin')}
-              >
-                <span className="sidebar-icon">⚙️</span>
-                <span className="sidebar-label">Admin</span>
-              </button>
-            )}
+            <button
+              className={`sidebar-item ${activeView === 'admin' ? 'active' : ''}`}
+              onClick={() => setActiveView('admin')}
+            >
+              <span className="sidebar-icon">⚙️</span>
+              <span className="sidebar-label">Ustawienia</span>
+            </button>
           </nav>
           <div className="sidebar-footer">
             <img src="/logo.jpg" alt="Marymont Ping Pong" className="sidebar-logo" />
@@ -731,15 +723,13 @@ function App() {
             <span className="nav-icon">🏆</span>
             <span>Drabinki</span>
           </button>
-          {user?.role === 'admin' && (
-            <button
-              className={`bottom-nav-item ${activeView === 'admin' ? 'active' : ''}`}
-              onClick={() => setActiveView('admin')}
-            >
-              <span className="nav-icon">⚙️</span>
-              <span>Admin</span>
-            </button>
-          )}
+          <button
+            className={`bottom-nav-item ${activeView === 'admin' ? 'active' : ''}`}
+            onClick={() => setActiveView('admin')}
+          >
+            <span className="nav-icon">⚙️</span>
+            <span>Ustawienia</span>
+          </button>
         </nav>
 
         <main className="main-content">
@@ -977,31 +967,52 @@ function App() {
             </div>
           )}
 
-          {/* Admin View */}
-          {activeView === 'admin' && user?.role === 'admin' && (
-            <div className="admin-actions">
-              <h4>Akcje Administratora</h4>
-              <div className="action-buttons">
-                <button
-                  className="action-btn black"
-                  onClick={() => setShowGroupGenerator(true)}
-                >
-                  Grupy
-                </button>
-                <button
-                  className="action-btn blue"
-                  onClick={() => setShowMatchCreator(true)}
-                >
-                  Mecze
-                </button>
-                <button
-                  className="action-btn red"
-                  onClick={() => setShowAccountManagement(true)}
-                >
-                  Zarządzaj Kontami
-                </button>
+          {/* Settings View */}
+          {activeView === 'admin' && (
+            <>
+              <div className="settings-section">
+                <h4>Konto</h4>
+                <div className="settings-buttons">
+                  <button
+                    className="settings-btn"
+                    onClick={() => setShowChangePasswordModal(true)}
+                  >
+                    Zmień Hasło
+                  </button>
+                  <button
+                    className="settings-btn settings-btn-danger"
+                    onClick={handleLogout}
+                  >
+                    Wyloguj
+                  </button>
+                </div>
               </div>
-            </div>
+              {user?.role === 'admin' && (
+                <div className="admin-actions">
+                  <h4>Panel Administratora</h4>
+                  <div className="action-buttons">
+                    <button
+                      className="action-btn black"
+                      onClick={() => setShowGroupGenerator(true)}
+                    >
+                      Grupy
+                    </button>
+                    <button
+                      className="action-btn blue"
+                      onClick={() => setShowMatchCreator(true)}
+                    >
+                      Mecze
+                    </button>
+                    <button
+                      className="action-btn red"
+                      onClick={() => setShowAccountManagement(true)}
+                    >
+                      Zarządzaj Kontami
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </main>
 

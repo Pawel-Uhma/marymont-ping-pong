@@ -621,6 +621,58 @@
   transition: all 0.2s ease;
 }
 
+/* Settings Section */
+.settings-section {
+  background: var(--white);
+  border: 1px solid var(--medium-gray);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.settings-section h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--black);
+  margin: 0 0 16px 0;
+}
+
+.settings-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-btn {
+  background: var(--white);
+  color: var(--black);
+  border: 1px solid var(--medium-gray);
+  padding: 12px 16px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.settings-btn:hover {
+  background: var(--light-gray);
+  border-color: var(--dark-gray);
+}
+
+.settings-btn-danger {
+  color: var(--red);
+  border-color: rgba(220, 20, 60, 0.3);
+}
+
+.settings-btn-danger:hover {
+  background: rgba(220, 20, 60, 0.06);
+  border-color: var(--red);
+}
+
 /* Admin Actions */
 .admin-actions {
   background: var(--white);
@@ -629,7 +681,6 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   padding: 24px;
-  margin-top: 16px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -1005,7 +1056,7 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
+  overflow-x: auto;
 }
 
 .bracket-preview h3 {
@@ -1863,6 +1914,23 @@
     min-height: 44px;
   }
 
+  /* Tournament Filters Mobile */
+  .tournament-filters {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .tournament-filters .tabs {
+    gap: 2px;
+  }
+
+  .tournament-filters .tab {
+    padding: 5px 10px;
+    font-size: 12px;
+    min-height: 32px;
+    min-width: unset;
+  }
+
   /* Tournament Matches Mobile */
   .tournament-matches-section {
     padding: 20px 16px;
@@ -1874,24 +1942,44 @@
     align-items: flex-start;
   }
 
+  .scoreboard-row {
+    flex-wrap: nowrap;
+  }
+
   .scoreboard-player {
-    min-width: 120px;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
   }
 
   .scoreboard-name {
     font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .winner-icon {
+    font-size: 13px;
+    flex-shrink: 0;
   }
 
   .scoreboard-set {
-    width: 30px;
-    height: 30px;
-    font-size: 12px;
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+    flex-shrink: 0;
   }
 
   .scoreboard-total {
-    width: 36px;
-    height: 36px;
-    font-size: 17px;
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .scoreboard-sets {
+    flex-shrink: 0;
   }
 
   .pagination-btn {
@@ -2047,31 +2135,46 @@
     padding: 16px 12px;
   }
 
+  .tournament-filters .tab {
+    padding: 4px 8px;
+    font-size: 11px;
+    min-height: 28px;
+  }
+
   .scoreboard-row {
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-wrap: nowrap;
+    gap: 6px;
     padding: 8px;
   }
 
   .scoreboard-player {
-    width: 100%;
-    min-width: unset;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .scoreboard-name {
+    font-size: 12px;
+  }
+
+  .winner-icon {
+    font-size: 12px;
   }
 
   .scoreboard-sets {
-    flex: 1;
+    flex-shrink: 0;
   }
 
   .scoreboard-set {
-    width: 28px;
-    height: 28px;
-    font-size: 11px;
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
   }
 
   .scoreboard-total {
-    width: 34px;
-    height: 34px;
-    font-size: 16px;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
   }
 
   .pagination-btn {
