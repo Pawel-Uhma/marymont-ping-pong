@@ -21,6 +21,8 @@ interface User {
   category?: Category;
 }
 
+type ViewType = 'dashboard' | 'matches' | 'standings' | 'brackets' | 'admin'
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<User | null>(null)
@@ -50,6 +52,9 @@ function App() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showBracketAdmin, setShowBracketAdmin] = useState(false)
 
+  // Sidebar navigation
+  const [activeView, setActiveView] = useState<ViewType>('matches')
+
   // Bracket data for all three brackets
   const [manBracketData, setManBracketData] = useState<{ bracket: any; matches: EliminationMatch[] } | null>(null)
   const [womanBracketData, setWomanBracketData] = useState<{ bracket: any; matches: EliminationMatch[] } | null>(null)
@@ -59,6 +64,8 @@ function App() {
   // Tournament matches data
   const [tournamentMatches, setTournamentMatches] = useState<{ match: GroupMatch | EliminationMatch, category: Category }[]>([])
   const [tournamentPage, setTournamentPage] = useState(0)
+  const [tournamentCategoryFilter, setTournamentCategoryFilter] = useState<'all' | Category>('all')
+  const [tournamentStatusFilter, setTournamentStatusFilter] = useState<'all' | 'scheduled' | 'final'>('all')
 
   // Helper function to get user's category
   const getUserCategory = async (playerId: string | null): Promise<Category> => {
@@ -102,6 +109,7 @@ function App() {
           setCredentials({ username: '', password: '' })
           setShowLoginModal(false)
           setError('')
+          setActiveView('dashboard')
 
           // Load dashboard data after successful login
           loadDashboardData()
@@ -113,6 +121,7 @@ function App() {
           setCredentials({ username: '', password: '' })
           setShowLoginModal(false)
           setError('')
+          setActiveView('dashboard')
           loadDashboardData()
         }
       } else {
@@ -131,6 +140,7 @@ function App() {
     setUser(null)
     setCredentials({ username: '', password: '' })
     setError('')
+    setActiveView('matches')
   }
 
   // Handle Edit Score
@@ -141,16 +151,6 @@ function App() {
 
   const handleScoreUpdated = () => {
     loadDashboardData() // Reload dashboard data after score update
-  }
-
-  // Handle My Matches
-  const handleMyMatches = () => {
-    setShowMyMatchesModal(true)
-  }
-
-  // Handle Standings
-  const handleStandings = () => {
-    setShowStandingsModal(true)
   }
 
   // Handle match edited from My Matches
@@ -401,18 +401,144 @@ function App() {
     return category === 'man' ? 'Mężczyźni' : 'Kobiety';
   }
 
-  // Tournament matches pagination
-  const MATCHES_PER_PAGE = 3;
-  const totalTournamentPages = Math.ceil(tournamentMatches.length / MATCHES_PER_PAGE);
-  const paginatedTournamentMatches = tournamentMatches.slice(
-    tournamentPage * MATCHES_PER_PAGE,
-    (tournamentPage + 1) * MATCHES_PER_PAGE
+  // Standings table helpers
+  const getStandingsPlayerName = (player: PlayerStanding): string => {
+    if (player.name && player.surname) return `${player.name} ${player.surname}`;
+    return getPlayerName(player.playerId);
+  }
+
+  const renderStandingsTableBlock = (playersList: PlayerStanding[], title: string) => (
+    <div className="group-standings-table">
+      <h4>{title}</h4>
+      <div className="standings-table">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Gracz</th>
+              <th>W-P</th>
+              <th>Sety</th>
+              <th>Punkty</th>
+            </tr>
+          </thead>
+          <tbody>
+            {playersList.map((player: PlayerStanding) => {
+              const name = getStandingsPlayerName(player);
+              const setDiff = (player.setsFor || 0) - (player.setsAgainst || 0);
+              const pointDiff = (player.pointsFor || 0) - (player.pointsAgainst || 0);
+              const rankClass = player.rank <= 3 ? `podium-row podium-${player.rank}` : '';
+              return (
+                <tr key={player.playerId} className={rankClass}>
+                  <td>
+                    <div className={`rank-badge rank-${player.rank <= 3 ? player.rank : 'default'}`}>
+                      {player.rank}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="player-cell">
+                      <span className="player-cell-name">{name}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="record-badge">
+                      <span className="record-wins">{player.wins}</span>
+                      <span className="record-sep">-</span>
+                      <span className="record-losses">{player.losses}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`stat-value ${setDiff > 0 ? 'stat-positive' : setDiff < 0 ? 'stat-negative' : 'stat-neutral'}`}>
+                      {setDiff > 0 ? '+' : ''}{setDiff}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`stat-value ${pointDiff > 0 ? 'stat-positive' : pointDiff < 0 ? 'stat-negative' : 'stat-neutral'}`}>
+                      {pointDiff > 0 ? '+' : ''}{pointDiff}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+
+  // Tournament matches filtering & pagination
+  const MATCHES_PER_PAGE = 5;
+  const isMatchPlayed = (match: GroupMatch | EliminationMatch): boolean => {
+    return !!match.winner || match.sets.some(set => set.p1 !== 0 || set.p2 !== 0);
+  };
+  const filteredTournamentMatches = tournamentMatches.filter(({ match, category }) => {
+    if (tournamentCategoryFilter !== 'all' && category !== tournamentCategoryFilter) return false;
+    if (tournamentStatusFilter === 'scheduled' && isMatchPlayed(match)) return false;
+    if (tournamentStatusFilter === 'final' && !isMatchPlayed(match)) return false;
+    return true;
+  });
+  const totalTournamentPages = Math.ceil(filteredTournamentMatches.length / MATCHES_PER_PAGE);
+  const safeTournamentPage = Math.min(tournamentPage, Math.max(0, totalTournamentPages - 1));
+  const paginatedTournamentMatches = filteredTournamentMatches.slice(
+    safeTournamentPage * MATCHES_PER_PAGE,
+    (safeTournamentPage + 1) * MATCHES_PER_PAGE
   );
+
+  const handleTournamentFilterChange = (filterType: 'category' | 'status', value: string) => {
+    setTournamentPage(0);
+    if (filterType === 'category') setTournamentCategoryFilter(value as 'all' | Category);
+    else setTournamentStatusFilter(value as 'all' | 'scheduled' | 'final');
+  }
 
   const renderTournamentMatches = () => (
     <div className="tournament-matches-section">
       <div className="section-header">
         <h3>Mecze Turnieju</h3>
+      </div>
+      <div className="tournament-filters">
+        <div className="filter-group">
+          <div className="tabs">
+            <button
+              className={`tab ${tournamentCategoryFilter === 'all' ? 'active' : ''}`}
+              onClick={() => handleTournamentFilterChange('category', 'all')}
+            >
+              Wszyscy
+            </button>
+            <button
+              className={`tab ${tournamentCategoryFilter === 'man' ? 'active' : ''}`}
+              onClick={() => handleTournamentFilterChange('category', 'man')}
+            >
+              Mężczyźni
+            </button>
+            <button
+              className={`tab ${tournamentCategoryFilter === 'woman' ? 'active' : ''}`}
+              onClick={() => handleTournamentFilterChange('category', 'woman')}
+            >
+              Kobiety
+            </button>
+          </div>
+        </div>
+        <div className="filter-group">
+          <div className="tabs">
+            <button
+              className={`tab ${tournamentStatusFilter === 'all' ? 'active' : ''}`}
+              onClick={() => handleTournamentFilterChange('status', 'all')}
+            >
+              Wszystkie
+            </button>
+            <button
+              className={`tab ${tournamentStatusFilter === 'scheduled' ? 'active' : ''}`}
+              onClick={() => handleTournamentFilterChange('status', 'scheduled')}
+            >
+              Nieodbyty
+            </button>
+            <button
+              className={`tab ${tournamentStatusFilter === 'final' ? 'active' : ''}`}
+              onClick={() => handleTournamentFilterChange('status', 'final')}
+            >
+              Zakończony
+            </button>
+          </div>
+        </div>
       </div>
       {paginatedTournamentMatches.length > 0 ? (
         <>
@@ -478,17 +604,17 @@ function App() {
               <button
                 className="pagination-btn"
                 onClick={() => setTournamentPage(p => Math.max(0, p - 1))}
-                disabled={tournamentPage === 0}
+                disabled={safeTournamentPage === 0}
               >
                 Poprzednia
               </button>
               <span className="pagination-info">
-                {tournamentPage + 1} / {totalTournamentPages}
+                {safeTournamentPage + 1} / {totalTournamentPages}
               </span>
               <button
                 className="pagination-btn"
                 onClick={() => setTournamentPage(p => Math.min(totalTournamentPages - 1, p + 1))}
-                disabled={tournamentPage === totalTournamentPages - 1}
+                disabled={safeTournamentPage === totalTournamentPages - 1}
               >
                 Następna
               </button>
@@ -529,157 +655,201 @@ function App() {
           </div>
         </header>
 
-        <main className="main-content">
-          {/* Top Row */}
-          <div className="top-row">
-            <div className="next-match-card">
-              <div className="card-header">
-                <h3>Twój Następny Mecz</h3>
-                {nextMatch?.scheduledAt && (
-                  <span className="match-time">
-                    {new Date(nextMatch.scheduledAt).toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-              <div className="match-details">
-                {nextMatch ? (
-                  <>
-                    <div className="opponents">
-                      <div className="player">
-                        <span className="player-name">{getPlayerName(nextMatch.p1)}</span>
-                      </div>
-                      <div className="vs">VS</div>
-                      <div className="player">
-                        <span className="player-name">{getPlayerName(nextMatch.p2)}</span>
-                      </div>
-                    </div>
-                    <div className="current-scores">
-                      <div className="set-scores">
-                        {getSetScores(nextMatch).map((score, index) => (
-                          <span key={index}>{score}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <button
-                      className="edit-score-btn"
-                      onClick={() => handleEditScore(nextMatch)}
-                    >
-                      Edytuj Wynik
-                    </button>
-                  </>
-                ) : (
-                  <div className="no-match">
-                    <p>Brak nadchodzących meczów</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="quick-actions">
-              <h4>Szybkie Akcje</h4>
-              <div className="action-buttons">
-                <button
-                  className="action-btn yellow"
-                  onClick={handleMyMatches}
-                >
-                  Moje Mecze
-                </button>
-                <button
-                  className="action-btn blue"
-                  onClick={handleStandings}
-                >
-                  Klasyfikacja
-                </button>
-              </div>
-            </div>
-
+        <aside className="sidebar">
+          <nav className="sidebar-nav">
+            <button
+              className={`sidebar-item ${activeView === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setActiveView('dashboard')}
+            >
+              <span className="sidebar-icon">🏠</span>
+              <span className="sidebar-label">Pulpit</span>
+            </button>
+            <button
+              className={`sidebar-item ${activeView === 'matches' ? 'active' : ''}`}
+              onClick={() => setActiveView('matches')}
+            >
+              <span className="sidebar-icon">🏓</span>
+              <span className="sidebar-label">Mecze</span>
+            </button>
+            <button
+              className={`sidebar-item ${activeView === 'standings' ? 'active' : ''}`}
+              onClick={() => setActiveView('standings')}
+            >
+              <span className="sidebar-icon">📊</span>
+              <span className="sidebar-label">Klasyfikacja</span>
+            </button>
+            <button
+              className={`sidebar-item ${activeView === 'brackets' ? 'active' : ''}`}
+              onClick={() => setActiveView('brackets')}
+            >
+              <span className="sidebar-icon">🏆</span>
+              <span className="sidebar-label">Drabinki</span>
+            </button>
             {user?.role === 'admin' && (
-              <div className="admin-actions">
-                <h4>Akcje Administratora</h4>
-                <div className="action-buttons">
-                  <button
-                    className="action-btn black"
-                    onClick={() => setShowGroupGenerator(true)}
-                  >
-                    Grupy
-                  </button>
-                  <button
-                    className="action-btn blue"
-                    onClick={() => setShowMatchCreator(true)}
-                  >
-                    Mecze
-                  </button>
-                  <button
-                    className="action-btn red"
-                    onClick={() => setShowAccountManagement(true)}
-                  >
-                    Zarządzaj Kontami
-                  </button>
+              <button
+                className={`sidebar-item ${activeView === 'admin' ? 'active' : ''}`}
+                onClick={() => setActiveView('admin')}
+              >
+                <span className="sidebar-icon">⚙️</span>
+                <span className="sidebar-label">Admin</span>
+              </button>
+            )}
+          </nav>
+          <div className="sidebar-footer">
+            <img src="/logo.jpg" alt="Marymont Ping Pong" className="sidebar-logo" />
+            <span className="footer-text">© 2025 Marymont Ping Pong</span>
+          </div>
+        </aside>
+
+        {/* Mobile Bottom Nav */}
+        <nav className="bottom-nav">
+          <button
+            className={`bottom-nav-item ${activeView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveView('dashboard')}
+          >
+            <span className="nav-icon">🏠</span>
+            <span>Pulpit</span>
+          </button>
+          <button
+            className={`bottom-nav-item ${activeView === 'matches' ? 'active' : ''}`}
+            onClick={() => setActiveView('matches')}
+          >
+            <span className="nav-icon">🏓</span>
+            <span>Mecze</span>
+          </button>
+          <button
+            className={`bottom-nav-item ${activeView === 'standings' ? 'active' : ''}`}
+            onClick={() => setActiveView('standings')}
+          >
+            <span className="nav-icon">📊</span>
+            <span>Klasyfikacja</span>
+          </button>
+          <button
+            className={`bottom-nav-item ${activeView === 'brackets' ? 'active' : ''}`}
+            onClick={() => setActiveView('brackets')}
+          >
+            <span className="nav-icon">🏆</span>
+            <span>Drabinki</span>
+          </button>
+          {user?.role === 'admin' && (
+            <button
+              className={`bottom-nav-item ${activeView === 'admin' ? 'active' : ''}`}
+              onClick={() => setActiveView('admin')}
+            >
+              <span className="nav-icon">⚙️</span>
+              <span>Admin</span>
+            </button>
+          )}
+        </nav>
+
+        <main className="main-content">
+          {/* Dashboard View */}
+          {activeView === 'dashboard' && (
+            <>
+              <div className="next-match-card">
+                <div className="card-header">
+                  <h3>Twój Następny Mecz</h3>
+                  {nextMatch?.scheduledAt && (
+                    <span className="match-time">
+                      {new Date(nextMatch.scheduledAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                <div className="match-details">
+                  {nextMatch ? (
+                    <>
+                      <div className="opponents">
+                        <div className="player">
+                          <span className="player-name">{getPlayerName(nextMatch.p1)}</span>
+                        </div>
+                        <div className="vs">VS</div>
+                        <div className="player">
+                          <span className="player-name">{getPlayerName(nextMatch.p2)}</span>
+                        </div>
+                      </div>
+                      <div className="current-scores">
+                        <div className="set-scores">
+                          {getSetScores(nextMatch).map((score, index) => (
+                            <span key={index}>{score}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        className="edit-score-btn"
+                        onClick={() => handleEditScore(nextMatch)}
+                      >
+                        Edytuj Wynik
+                      </button>
+                    </>
+                  ) : (
+                    <div className="no-match">
+                      <p>Brak nadchodzących meczów</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Middle Section */}
-          <div className="middle-section">
-            <div className="upcoming-matches">
-              <div className="section-header">
-                <h3>Nadchodzące Mecze</h3>
-              </div>
-              <div className="matches-list">
-                {upcomingMatches.length > 0 ? (
-                  upcomingMatches.map((match) => (
-                    <div key={match.id} className="match-item">
-                      <span className="time">
-                        {match.scheduledAt ? new Date(match.scheduledAt).toLocaleDateString() : 'TBD'}
-                      </span>
-                      <span className="players">
-                        {getPlayerName(match.p1)} vs {getPlayerName(match.p2)}
-                      </span>
-                      <span className={`status ${match.status}`}>
-                        {getMatchStatus(match)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="no-matches">
-                    <p>Brak zaplanowanych meczów</p>
+              <div className="middle-section">
+                <div className="upcoming-matches">
+                  <div className="section-header">
+                    <h3>Nadchodzące Mecze</h3>
                   </div>
-                )}
-              </div>
-            </div>
-
-            <div className="my-matches">
-              <h3>Moje Mecze</h3>
-              <div className="matches-list">
-                {myMatches.length > 0 ? (
-                  myMatches.map((match) => (
-                    <div key={match.id} className="match-item">
-                      <span className="time">
-                        {match.scheduledAt ? new Date(match.scheduledAt).toLocaleDateString() : 'TBD'}
-                      </span>
-                      <span className="players">
-                        {getPlayerName(match.p1)} vs {getPlayerName(match.p2)}
-                      </span>
-                      <span className={`status ${match.status}`}>
-                        {getMatchStatus(match)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="no-matches">
-                    <p>Nie znaleziono meczów</p>
+                  <div className="matches-list">
+                    {upcomingMatches.length > 0 ? (
+                      upcomingMatches.map((match) => (
+                        <div key={match.id} className="match-item">
+                          <span className="time">
+                            {match.scheduledAt ? new Date(match.scheduledAt).toLocaleDateString() : 'TBD'}
+                          </span>
+                          <span className="players">
+                            {getPlayerName(match.p1)} vs {getPlayerName(match.p2)}
+                          </span>
+                          <span className={`status ${match.status}`}>
+                            {getMatchStatus(match)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="no-matches">
+                        <p>Brak zaplanowanych meczów</p>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+
+                <div className="my-matches">
+                  <h3>Moje Mecze</h3>
+                  <div className="matches-list">
+                    {myMatches.length > 0 ? (
+                      myMatches.map((match) => (
+                        <div key={match.id} className="match-item">
+                          <span className="time">
+                            {match.scheduledAt ? new Date(match.scheduledAt).toLocaleDateString() : 'TBD'}
+                          </span>
+                          <span className="players">
+                            {getPlayerName(match.p1)} vs {getPlayerName(match.p2)}
+                          </span>
+                          <span className={`status ${match.status}`}>
+                            {getMatchStatus(match)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="no-matches">
+                        <p>Nie znaleziono meczów</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
 
-          {/* Tournament Matches */}
-          {renderTournamentMatches()}
+          {/* Matches View */}
+          {activeView === 'matches' && renderTournamentMatches()}
 
-          {/* Bottom Section */}
-          <div className="bottom-section">
+          {/* Standings View */}
+          {activeView === 'standings' && (
             <div className="group-standings">
               <div className="section-header">
                 <h3>Klasyfikacja Grup</h3>
@@ -724,77 +894,27 @@ function App() {
                   </div>
                 )}
               </div>
-              <div className="standings-table">
-                {standings.length > 0 && selectedGroupId ? (
-                  (() => {
-                    if (selectedGroupId === 'all') {
-                      const allPlayers = getAllPlayersStandings();
-                      return (
-                        <div key="all" className="group-standings-table">
-                          <h4>Wszystkie Grupy</h4>
-                          <table>
-                            <thead>
-                              <tr>
-                                <th>Miejsce</th>
-                                <th>Gracz</th>
-                                <th>W-P</th>
-                                <th>Sety +/-</th>
-                                <th>Punkty +/-</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {allPlayers.map((player: PlayerStanding) => (
-                                <tr key={player.playerId}>
-                                  <td>{player.rank}</td>
-                                  <td>{getPlayerName(player.playerId)}</td>
-                                  <td>{player.wins}-{player.losses}</td>
-                                  <td>{(player.setsFor || 0) - (player.setsAgainst || 0) > 0 ? '+' : ''}{(player.setsFor || 0) - (player.setsAgainst || 0)}</td>
-                                  <td>{(player.pointsFor || 0) - (player.pointsAgainst || 0) > 0 ? '+' : ''}{(player.pointsFor || 0) - (player.pointsAgainst || 0)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      );
-                    } else {
-                      const selectedGroup = standings.find(group => group.groupId === selectedGroupId);
-                      return selectedGroup ? (
-                        <div key={selectedGroup.groupId} className="group-standings-table">
-                          <h4>Grupa {getGroupLetter(selectedGroup.groupId)}</h4>
-                          <table>
-                            <thead>
-                              <tr>
-                                <th>Miejsce</th>
-                                <th>Gracz</th>
-                                <th>W-P</th>
-                                <th>Sety +/-</th>
-                                <th>Punkty +/-</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {selectedGroup.table.map((player: PlayerStanding) => (
-                                <tr key={player.playerId}>
-                                  <td>{player.rank}</td>
-                                  <td>{getPlayerName(player.playerId)}</td>
-                                  <td>{player.wins}-{player.losses}</td>
-                                  <td>{(player.setsFor || 0) - (player.setsAgainst || 0) > 0 ? '+' : ''}{(player.setsFor || 0) - (player.setsAgainst || 0)}</td>
-                                  <td>{(player.pointsFor || 0) - (player.pointsAgainst || 0) > 0 ? '+' : ''}{(player.pointsFor || 0) - (player.pointsAgainst || 0)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : null;
-                    }
-                  })()
-                ) : (
-                  <div className="no-standings">
-                    <p>Brak dostępnej klasyfikacji</p>
-                  </div>
-                )}
-              </div>
+              {standings.length > 0 && selectedGroupId ? (
+                (() => {
+                  if (selectedGroupId === 'all') {
+                    return renderStandingsTableBlock(getAllPlayersStandings(), 'Wszystkie Grupy');
+                  } else {
+                    const selectedGroup = standings.find(group => group.groupId === selectedGroupId);
+                    return selectedGroup
+                      ? renderStandingsTableBlock(selectedGroup.table, `Grupa ${getGroupLetter(selectedGroup.groupId)}`)
+                      : null;
+                  }
+                })()
+              ) : (
+                <div className="no-standings">
+                  <p>Brak dostępnej klasyfikacji</p>
+                </div>
+              )}
             </div>
+          )}
 
+          {/* Brackets View */}
+          {activeView === 'brackets' && (
             <div className="bracket-preview">
               <div className="bracket-header">
                 <h3>Drabinki</h3>
@@ -855,25 +975,35 @@ function App() {
                 />
               )}
             </div>
-          </div>
-        </main>
+          )}
 
-        {/* Footer */}
-        <footer className="footer">
-          <div className="footer-content">
-            <div className="footer-info">
-              <span className="footer-text">© 2025 Marymont Ping Pong</span>
+          {/* Admin View */}
+          {activeView === 'admin' && user?.role === 'admin' && (
+            <div className="admin-actions">
+              <h4>Akcje Administratora</h4>
+              <div className="action-buttons">
+                <button
+                  className="action-btn black"
+                  onClick={() => setShowGroupGenerator(true)}
+                >
+                  Grupy
+                </button>
+                <button
+                  className="action-btn blue"
+                  onClick={() => setShowMatchCreator(true)}
+                >
+                  Mecze
+                </button>
+                <button
+                  className="action-btn red"
+                  onClick={() => setShowAccountManagement(true)}
+                >
+                  Zarządzaj Kontami
+                </button>
+              </div>
             </div>
-            <div className="footer-actions">
-              <button
-                className="footer-btn"
-                onClick={() => window.open('https://www.youtube.com/watch?v=xvFZjo5PgG0', '_blank')}
-              >
-                Zgłoś problem
-              </button>
-            </div>
-          </div>
-        </footer>
+          )}
+        </main>
 
         {/* Add Player Modal */}
         <AddPlayerModal
@@ -1003,7 +1133,7 @@ function App() {
   // Show login screen if login modal is open
   if (showLoginModal) {
     return (
-      <div className="app">
+      <div className="app app-login">
         <div className="login-container">
           <div className="login-card">
             <div className="login-header">
@@ -1084,12 +1214,12 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <div className="header-content header-content-centered">
+        <div className="header-content">
           <div className="logo-section">
             <div className="target-icon">🎯</div>
             <h1 className="logo">Marymont Ping Pong</h1>
           </div>
-          <div className="login-button-container">
+          <div className="user-section">
             <button
               onClick={() => setShowLoginModal(true)}
               className="login-btn-header"
@@ -1100,12 +1230,52 @@ function App() {
         </div>
       </header>
 
-      <main className="main-content">
-        {/* Tournament Matches */}
-        {renderTournamentMatches()}
+      <aside className="sidebar">
+        <nav className="sidebar-nav">
+          <button
+            className={`sidebar-item ${activeView === 'matches' ? 'active' : ''}`}
+            onClick={() => setActiveView('matches')}
+          >
+            <span className="sidebar-icon">🏓</span>
+            <span className="sidebar-label">Mecze</span>
+          </button>
+          <button
+            className={`sidebar-item ${activeView === 'standings' ? 'active' : ''}`}
+            onClick={() => setActiveView('standings')}
+          >
+            <span className="sidebar-icon">📊</span>
+            <span className="sidebar-label">Klasyfikacja</span>
+          </button>
+        </nav>
+        <div className="sidebar-footer">
+          <span className="footer-text">© 2025 Marymont Ping Pong</span>
+        </div>
+      </aside>
 
-        {/* Standings Section */}
-        <div className="bottom-section">
+      {/* Mobile Bottom Nav */}
+      <nav className="bottom-nav">
+        <button
+          className={`bottom-nav-item ${activeView === 'matches' ? 'active' : ''}`}
+          onClick={() => setActiveView('matches')}
+        >
+          <span className="nav-icon">🏓</span>
+          <span>Mecze</span>
+        </button>
+        <button
+          className={`bottom-nav-item ${activeView === 'standings' ? 'active' : ''}`}
+          onClick={() => setActiveView('standings')}
+        >
+          <span className="nav-icon">📊</span>
+          <span>Klasyfikacja</span>
+        </button>
+      </nav>
+
+      <main className="main-content">
+        {/* Matches View */}
+        {activeView === 'matches' && renderTournamentMatches()}
+
+        {/* Standings View */}
+        {activeView === 'standings' && (
           <div className="group-standings">
             <div className="section-header">
               <h3>Klasyfikacja Grup</h3>
@@ -1150,95 +1320,25 @@ function App() {
                 </div>
               )}
             </div>
-            <div className="standings-table">
-              {standings.length > 0 && selectedGroupId ? (
-                (() => {
-                  if (selectedGroupId === 'all') {
-                    const allPlayers = getAllPlayersStandings();
-                    return (
-                      <div key="all" className="group-standings-table">
-                        <h4>Wszystkie Grupy</h4>
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Miejsce</th>
-                              <th>Gracz</th>
-                              <th>W-P</th>
-                              <th>Sety +/-</th>
-                              <th>Punkty +/-</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {allPlayers.map((player: PlayerStanding) => (
-                              <tr key={player.playerId}>
-                                <td>{player.rank}</td>
-                                <td>
-                                  {player.name && player.surname
-                                    ? `${player.name} ${player.surname}`
-                                    : getPlayerName(player.playerId)}
-                                </td>
-                                <td>{player.wins}-{player.losses}</td>
-                                <td>{(player.setsFor || 0) - (player.setsAgainst || 0) > 0 ? '+' : ''}{(player.setsFor || 0) - (player.setsAgainst || 0)}</td>
-                                <td>{(player.pointsFor || 0) - (player.pointsAgainst || 0) > 0 ? '+' : ''}{(player.pointsFor || 0) - (player.pointsAgainst || 0)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  } else {
-                    const selectedGroup = standings.find(group => group.groupId === selectedGroupId);
-                    return selectedGroup ? (
-                      <div key={selectedGroup.groupId} className="group-standings-table">
-                        <h4>Grupa {selectedGroup.groupId}</h4>
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Miejsce</th>
-                              <th>Gracz</th>
-                              <th>W-P</th>
-                              <th>Sety +/-</th>
-                              <th>Punkty +/-</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selectedGroup.table.map((player: PlayerStanding) => (
-                              <tr key={player.playerId}>
-                                <td>{player.rank}</td>
-                                <td>
-                                  {player.name && player.surname
-                                    ? `${player.name} ${player.surname}`
-                                    : getPlayerName(player.playerId)}
-                                </td>
-                                <td>{player.wins}-{player.losses}</td>
-                                <td>{(player.setsFor || 0) - (player.setsAgainst || 0) > 0 ? '+' : ''}{(player.setsFor || 0) - (player.setsAgainst || 0)}</td>
-                                <td>{(player.pointsFor || 0) - (player.pointsAgainst || 0) > 0 ? '+' : ''}{(player.pointsFor || 0) - (player.pointsAgainst || 0)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : null;
-                  }
-                })()
-              ) : (
-                <div className="no-standings">
-                  <p>Brak dostępnej klasyfikacji</p>
-                </div>
-              )}
-            </div>
+            {standings.length > 0 && selectedGroupId ? (
+              (() => {
+                if (selectedGroupId === 'all') {
+                  return renderStandingsTableBlock(getAllPlayersStandings(), 'Wszystkie Grupy');
+                } else {
+                  const selectedGroup = standings.find(group => group.groupId === selectedGroupId);
+                  return selectedGroup
+                    ? renderStandingsTableBlock(selectedGroup.table, `Grupa ${getGroupLetter(selectedGroup.groupId)}`)
+                    : null;
+                }
+              })()
+            ) : (
+              <div className="no-standings">
+                <p>Brak dostępnej klasyfikacji</p>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </main>
-
-      {/* Footer */}
-      <footer className="footer">
-        <div className="footer-content">
-          <div className="footer-info">
-            <span className="footer-text">© 2025 Marymont Ping Pong</span>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }
